@@ -4,6 +4,7 @@ Play Czech television stream in mplayer.
 """
 from collections import namedtuple
 import json
+import sys
 import time
 from urlparse import urljoin
 from urllib import urlencode
@@ -170,7 +171,9 @@ def main():
     while not live_playlist.end:
         while live_playlist.items:
             media = live_playlist.pop()
-            print media.location
+            sys.stdout.write(media.location)
+            sys.stdout.write('\n')
+            sys.stdout.flush()
 
         # Wait playlist duration. New media item appears in the playlist.
         time.sleep(live_playlist.duration)
@@ -181,7 +184,9 @@ def main():
 
     while live_playlist.items:
         media = live_playlist.pop()
-        print media.location
+        sys.stdout.write(media.location)
+        sys.stdout.write('\n')
+        sys.stdout.flush()
 
 
 if __name__ == '__main__':
