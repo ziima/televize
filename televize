@@ -1,0 +1,2 @@
+#!/bin/bash
+( python televize.py | while read LINE; do curl -s $LINE; done; ) | mplayer -cache 2000 -cache-min 50 -

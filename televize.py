@@ -10,8 +10,6 @@ from urlparse import urljoin
 from urllib import urlencode
 import urllib2
 
-from lxml import etree
-
 
 DEBUG = 0
 PLAYLIST_LINK = 'http://www.ceskatelevize.cz/ivysilani/ajax/get-client-playlist'
@@ -127,6 +125,8 @@ class M3uPlaylistParser(object):
 def main():
     setup_http()
 
+# from lxml import etree
+#
 #     response = urllib2.urlopen(LINK_CT24)
 #
 #     parser = etree.HTMLParser()
