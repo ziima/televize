@@ -2,6 +2,7 @@
 """
 Play Czech television stream in mplayer.
 """
+import argparse
 from collections import namedtuple
 import json
 import sys
@@ -11,13 +12,20 @@ from urllib import urlencode
 import urllib2
 
 
-DEBUG = 0
 PLAYLIST_LINK = 'http://www.ceskatelevize.cz/ivysilani/ajax/get-client-playlist'
 
+PARSER = argparse.ArgumentParser(description="Dumps Czech television stream locations")
+PARSER.add_argument('channel', choices=('1', '2', '24', '4'), help="channel to stream")
+PARSER.add_argument('--debug', action='store_true', help="print debug messages")
 
-def setup_http():
+
+def setup_http(debug):
     "Set up HTTP handlers."
-    handlers = [urllib2.HTTPHandler(debuglevel=DEBUG), urllib2.HTTPSHandler(debuglevel=DEBUG)]
+    if debug:
+        debuglevel = 1
+    else:
+        debuglevel = 0
+    handlers = [urllib2.HTTPHandler(debuglevel=debuglevel), urllib2.HTTPSHandler(debuglevel=debuglevel)]
     opener = urllib2.build_opener(*handlers)
     urllib2.install_opener(opener)
 
@@ -123,7 +131,8 @@ class M3uPlaylistParser(object):
 
 
 def main():
-    setup_http()
+    args = PARSER.parse_args()
+    setup_http(args.debug)
 
 # from lxml import etree
 #
@@ -141,7 +150,7 @@ def main():
 
     # First get the custom client playlist URL
     post_data = {
-        'playlist[0][id]': "24",
+        'playlist[0][id]': args.channel,
         'playlist[0][type]': "channel",
         'requestUrl': '/ivysilani/embed/iFramePlayerCT24.php',
         'requestSource': "iVysilani",
