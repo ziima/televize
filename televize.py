@@ -3,7 +3,7 @@
 Play Czech television stream in mplayer.
 """
 import argparse
-from collections import namedtuple
+from collections import namedtuple, OrderedDict
 import json
 import sys
 import time
@@ -13,9 +13,17 @@ import urllib2
 
 
 PLAYLIST_LINK = 'http://www.ceskatelevize.cz/ivysilani/ajax/get-client-playlist'
+CHANNEL_NAMES = OrderedDict((
+    ('1', 1),
+    ('2', 2),
+    ('24', 24),
+    ('sport', 4),
+    ('D', 5),
+    ('art', 6),
+))
 
 PARSER = argparse.ArgumentParser(description="Dumps Czech television stream locations")
-PARSER.add_argument('channel', choices=('1', '2', '24', '4'), help="channel to stream")
+PARSER.add_argument('channel', choices=CHANNEL_NAMES.keys(), help="channel to stream")
 PARSER.add_argument('--debug', action='store_true', help="print debug messages")
 
 
@@ -150,7 +158,7 @@ def main():
 
     # First get the custom client playlist URL
     post_data = {
-        'playlist[0][id]': args.channel,
+        'playlist[0][id]': CHANNEL_NAMES[args.channel],
         'playlist[0][type]': "channel",
         'requestUrl': '/ivysilani/embed/iFramePlayerCT24.php',
         'requestSource': "iVysilani",
