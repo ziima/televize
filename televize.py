@@ -138,6 +138,15 @@ class M3uPlaylistParser(object):
         return Stream(location, bandwidth)
 
 
+def print_streams(playlist, urlbase):
+    """Print streams from playlist to the stdout."""
+    while playlist.items:
+        media = playlist.pop()
+        sys.stdout.write(urljoin(urlbase, media.location))
+        sys.stdout.write('\n')
+        sys.stdout.flush()
+
+
 def main():
     args = PARSER.parse_args()
     setup_http(args.debug)
@@ -186,11 +195,7 @@ def main():
     live_playlist = m3u_parser.parse(response)
 
     while not live_playlist.end:
-        while live_playlist.items:
-            media = live_playlist.pop()
-            sys.stdout.write(media.location)
-            sys.stdout.write('\n')
-            sys.stdout.flush()
+        print_streams(live_playlist, live_stream.location)
 
         # Wait playlist duration. New media item appears in the playlist.
         time.sleep(live_playlist.duration)
@@ -199,11 +204,7 @@ def main():
         live_chunk = m3u_parser.parse(response)
         live_playlist.update_live(live_chunk)
 
-    while live_playlist.items:
-        media = live_playlist.pop()
-        sys.stdout.write(media.location)
-        sys.stdout.write('\n')
-        sys.stdout.flush()
+    print_streams(live_playlist, live_stream.location)
 
 
 if __name__ == '__main__':
