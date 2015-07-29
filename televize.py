@@ -151,8 +151,12 @@ class PlaylistParser(object):
 
     Based on Apple Playlist specification, see https://developer.apple.com/library/ios/technotes/tn2288/_index.html.
     """
-    def parse(self, data):
-        "Parses file-like `data` object and returns `Playlist` object."
+    def parse(self, data, playlist_url):
+        """
+        Parses file-like `data` object and returns `Playlist` object.
+
+        @param playlist_url: URL where the playlist is downloaded from
+        """
         first_line = next(data, None)
         if first_line.strip() != '#EXTM3U':
             raise ValueError('Invalid playlist')
@@ -169,7 +173,7 @@ class PlaylistParser(object):
                 pass
             elif line.startswith('#EXTINF'):
                 # Parse media line
-                media = self._parse_media(line, data, sequence)
+                media = self._parse_media(line, data, sequence, playlist_url)
                 playlist.add(media)
                 sequence += 1
             elif line == '#EXT-X-ENDLIST':
@@ -178,14 +182,14 @@ class PlaylistParser(object):
                 raise ValueError("Invalid playlist - unknown data: %s" % line)
         return playlist
 
-    def _parse_media(self, line, data, sequence):
+    def _parse_media(self, line, data, sequence, playlist_url):
         "Parses `EXTINF` tag."
         if sequence is None:
             raise ValueError("Invalid playlist - required EXT-X-MEDIA-SEQUENCE tag not found: %s" % line)
         location = next(data)
         location = location.strip()
         duration = float(line[8:])
-        return Media(sequence, location, duration)
+        return Media(sequence, urljoin(playlist_url, location), duration)
 ################################################################################
 
 
@@ -193,7 +197,7 @@ def print_streams(playlist, urlbase):
     """Print streams from playlist to the stdout."""
     while playlist:
         media = playlist.pop()
-        sys.stdout.write(urljoin(urlbase, media.location))
+        sys.stdout.write(media.location)
         sys.stdout.write('\n')
         sys.stdout.flush()
 
@@ -244,7 +248,7 @@ def main():
     playlist_parser = PlaylistParser()
     # Iteratively download the stream playlists
     response = urllib2.urlopen(live_stream.location)
-    live_playlist = playlist_parser.parse(response)
+    live_playlist = playlist_parser.parse(response, live_stream.location)
 
     while not live_playlist.end:
         print_streams(live_playlist, live_stream.location)
