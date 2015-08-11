@@ -257,8 +257,8 @@ def main():
         time.sleep(live_playlist.duration)
         # Get new part of the playlist
         response = urllib2.urlopen(live_stream.location)
-        live_chunk = playlist_parser.parse(response)
-        live_playlist.update_live(live_chunk)
+        live_chunk = playlist_parser.parse(response, live_stream.location)
+        live_playlist.update(live_chunk)
 
     print_streams(live_playlist, live_stream.location)
 
