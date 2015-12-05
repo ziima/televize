@@ -3,10 +3,10 @@
 Play Czech television stream in mplayer.
 """
 import argparse
+from collections import namedtuple, OrderedDict
 import logging
 import sys
 import time
-from collections import OrderedDict, namedtuple
 from urlparse import urljoin
 
 import requests
@@ -22,8 +22,11 @@ CHANNEL_NAMES = OrderedDict((
 ))
 
 PARSER = argparse.ArgumentParser(description="Dumps Czech television stream locations")
-PARSER.add_argument('channel', choices=CHANNEL_NAMES.keys(), help="channel to stream")
 PARSER.add_argument('--debug', action='store_true', help="print debug messages")
+
+LIVE_SUBPARSERS = PARSER.add_subparsers(help="CT live", dest="channel")
+for channel in CHANNEL_NAMES:
+    LIVE_SUBPARSERS.add_parser(channel, description="CT%s live" % channel, help="CT%s live" % channel)
 
 
 ################################################################################
