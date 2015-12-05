@@ -3,9 +3,13 @@ Script to run stream of Czech Television (Česká televize) in mplayer.
 
 ### Dependencies ###
  * python 2.7
+ * python-requests
  * curl
  * mplayer
  * bash
+
+## Development dependencies ##
+ * python-mock
 
 ### Usage ###
 ```sh

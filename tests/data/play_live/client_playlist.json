@@ -1,0 +1,40 @@
+{
+   "playlist" : [
+      {
+         "assetId" : "CT24",
+         "title" : "ČT24",
+         "aspect" : "16:9",
+         "previewTrackBaseUrl" : "http://80.188.65.19:80/contentserver/contents/2402/categories/preview_track/",
+         "streamUrls" : {
+            "main" : "http://80.188.65.18:80/cdn/uri/get/?token=fa8a25eb4f77fafdf17a3f3ced84fcfcc76e4ac2&contentType=live&expiry=1449327687&id=2402&playerType=flash&quality=web&region=1&skipIpAddressCheck=false&userId=823c8699-a1d0-41e2-aabc-1101c128cdab",
+            "timeshift" : "http://80.188.65.18:80/cdn/uri/get/?token=d0dd5e03daad124a6dbe4bc73fc7e051554a73ad&contentType=timeshift&expiry=1449327687&id=2402&playerType=flash&quality=web&region=1&skipIpAddressCheck=false&userId=33ed679e-23ee-4c28-8ce8-51ffa890a758"
+         },
+         "id" : 2402,
+         "gemius" : {
+            "TYP" : "linearni",
+            "GA" : "",
+            "NAZEV" : "CT24",
+            "ZDROJ" : "",
+            "KATEGORIE" : "",
+            "ID" : "CT24",
+            "CIL" : "IVYSILANI"
+         },
+         "type" : "LIVE"
+      }
+   ],
+   "setup" : {
+      "previewImageUrl" : "",
+      "title" : "Česká televize",
+      "gemius" : {
+         "HITCOLLECTOR" : "http://scz.hit.gemius.pl",
+         "PREFIX" : "scz",
+         "IDENTIFIER" : ".RblRK9yUaSfpdgRNj4PSKcVjzMUGk8hdyABykduxPH..7"
+      },
+      "description" : "",
+      "vast" : {
+         "preRoll" : [
+            "http://go.cz.bbelements.com/please/showit/20141/4/1/2/?typkodu=js&keywords=SIDP%23;IDEC%23;IVYSILANI;;LIVE;flash;CT24&bust=120730276"
+         ]
+      }
+   }
+}

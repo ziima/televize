@@ -184,13 +184,81 @@ class PlaylistParser(object):
 ################################################################################
 
 
-def print_streams(playlist, urlbase):
-    """Print streams from playlist to the stdout."""
+def print_streams(playlist, output=sys.stdout):
+    """
+    Print streams from playlist to the output.
+
+    @param playlist: Playlist do be printed
+    @param output: File-like object to write into
+    """
     while playlist:
         media = playlist.pop()
-        sys.stdout.write(media.location)
-        sys.stdout.write('\n')
-        sys.stdout.flush()
+        output.write(media.location)
+        output.write('\n')
+        output.flush()
+
+
+def play_live(channel, output=sys.stdout, _client=requests, _sleep=time.sleep):
+    """
+    Play live CT channel
+
+    @param channel: Name of the channel
+    @param _client: HTTP client. Used by tests
+    @param _sleep: Sleep function
+    """
+    # TODO: We shold parse the `content` from the flash player to find playlist data from `getPlaylistUrl` calls.
+    # from lxml import etree
+    #
+    # response = urllib2.urlopen(LINK_CT24)
+    #
+    # parser = etree.HTMLParser()
+    # tree = etree.parse(response, parser)
+    # player_src = tree.xpath('//div[@id="programmePlayer"]//iframe/@src')
+    # player_src = player_src[0]
+    #
+    # response = urllib2.urlopen(urljoin(LINK_CT24, player_src))
+    # content = response.read()
+
+    # First get the custom client playlist URL
+    post_data = {
+        'playlist[0][id]': CHANNEL_NAMES[channel],
+        'playlist[0][type]': "channel",
+        'requestUrl': '/ivysilani/embed/iFramePlayerCT24.php',
+        'requestSource': "iVysilani",
+        'addCommercials': 0,
+        'type': "html"
+    }
+    response = _client.post(PLAYLIST_LINK, post_data, headers={'x-addr': '127.0.0.1'})
+    client_playlist = response.json()
+
+    # Get the custom playlist URL to get playlist JSON meta data (including playlist URL)
+    response = _client.get(urljoin(PLAYLIST_LINK, client_playlist["url"]))
+    playlist_metadata = response.json()
+    stream_playlist_url = playlist_metadata['playlist'][0]['streamUrls']['main']
+
+    # Use playlist URL to get the M3U playlist with streams
+    var_parser = VariantPlaylistParser()
+    response = _client.get(urljoin(PLAYLIST_LINK, stream_playlist_url))
+    variant_playlist = var_parser.parse(response.iter_lines())
+    # Use the first stream found
+    live_stream = variant_playlist[500000]
+
+    playlist_parser = PlaylistParser()
+    # Iteratively download the stream playlists
+    response = _client.get(live_stream.location)
+    live_playlist = playlist_parser.parse(response.iter_lines(), live_stream.location)
+
+    while not live_playlist.end:
+        print_streams(live_playlist, output)
+
+        # Wait playlist duration. New media item should appear on the playlist.
+        _sleep(live_playlist.duration)
+        # Get new part of the playlist
+        response = _client.get(live_stream.location)
+        live_chunk = playlist_parser.parse(response.iter_lines(), live_stream.location)
+        live_playlist.update(live_chunk)
+
+    print_streams(live_playlist, output)
 
 
 def main():
@@ -201,60 +269,7 @@ def main():
         level = logging.WARNING
     logging.basicConfig(stream=sys.stderr, level=level)
 
-# from lxml import etree
-#
-#     response = urllib2.urlopen(LINK_CT24)
-#
-#     parser = etree.HTMLParser()
-#     tree = etree.parse(response, parser)
-#     player_src = tree.xpath('//div[@id="programmePlayer"]//iframe/@src')
-#     player_src = player_src[0]
-#
-#     response = urllib2.urlopen(urljoin(LINK_CT24, player_src))
-#     content = response.read()
-#
-#TODO: We shold parse the `content` from the flash player to find playlist data from `getPlaylistUrl` calls.
-
-    # First get the custom client playlist URL
-    post_data = {
-        'playlist[0][id]': CHANNEL_NAMES[args.channel],
-        'playlist[0][type]': "channel",
-        'requestUrl': '/ivysilani/embed/iFramePlayerCT24.php',
-        'requestSource': "iVysilani",
-        'addCommercials': 0,
-        'type': "html"
-    }
-    response = requests.post(PLAYLIST_LINK, post_data, headers={'x-addr': '127.0.0.1'})
-    client_playlist = response.json()
-
-    # Get the custom playlist URL to get playlist JSON meta data (including playlist URL)
-    response = requests.get(urljoin(PLAYLIST_LINK, client_playlist["url"]))
-    playlist_metadata = response.json()
-    stream_playlist_url = playlist_metadata['playlist'][0]['streamUrls']['main']
-
-    # Use playlist URL to get the M3U playlist with streams
-    var_parser = VariantPlaylistParser()
-    response = requests.get(urljoin(PLAYLIST_LINK, stream_playlist_url))
-    variant_playlist = var_parser.parse(response.iter_lines())
-    # Use the first stream found
-    live_stream = variant_playlist[500000]
-
-    playlist_parser = PlaylistParser()
-    # Iteratively download the stream playlists
-    response = requests.get(live_stream.location)
-    live_playlist = playlist_parser.parse(response.iter_lines(), live_stream.location)
-
-    while not live_playlist.end:
-        print_streams(live_playlist, live_stream.location)
-
-        # Wait playlist duration. New media item should appear on the playlist.
-        time.sleep(live_playlist.duration)
-        # Get new part of the playlist
-        response = requests.get(live_stream.location)
-        live_chunk = playlist_parser.parse(response.iter_lines(), live_stream.location)
-        live_playlist.update(live_chunk)
-
-    print_streams(live_playlist, live_stream.location)
+    play_live(args.channel)
 
 
 if __name__ == '__main__':
