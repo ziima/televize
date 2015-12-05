@@ -3,14 +3,13 @@
 Play Czech television stream in mplayer.
 """
 import argparse
-from collections import namedtuple, OrderedDict
-import json
+import logging
 import sys
 import time
+from collections import OrderedDict, namedtuple
 from urlparse import urljoin
-from urllib import urlencode
-import urllib2
 
+import requests
 
 PLAYLIST_LINK = 'http://www.ceskatelevize.cz/ivysilani/ajax/get-client-playlist'
 CHANNEL_NAMES = OrderedDict((
@@ -25,17 +24,6 @@ CHANNEL_NAMES = OrderedDict((
 PARSER = argparse.ArgumentParser(description="Dumps Czech television stream locations")
 PARSER.add_argument('channel', choices=CHANNEL_NAMES.keys(), help="channel to stream")
 PARSER.add_argument('--debug', action='store_true', help="print debug messages")
-
-
-def setup_http(debug):
-    "Set up HTTP handlers."
-    if debug:
-        debuglevel = 1
-    else:
-        debuglevel = 0
-    handlers = [urllib2.HTTPHandler(debuglevel=debuglevel), urllib2.HTTPSHandler(debuglevel=debuglevel)]
-    opener = urllib2.build_opener(*handlers)
-    urllib2.install_opener(opener)
 
 
 ################################################################################
@@ -204,7 +192,11 @@ def print_streams(playlist, urlbase):
 
 def main():
     args = PARSER.parse_args()
-    setup_http(args.debug)
+    if args.debug:
+        level = logging.DEBUG
+    else:
+        level = logging.WARNING
+    logging.basicConfig(stream=sys.stderr, level=level)
 
 # from lxml import etree
 #
@@ -229,26 +221,25 @@ def main():
         'addCommercials': 0,
         'type': "html"
     }
-    req = urllib2.Request(PLAYLIST_LINK, urlencode(post_data), {'x-addr': '127.0.0.1'})
-    response = urllib2.urlopen(req)
-    client_playlist = json.load(response)
+    response = requests.post(PLAYLIST_LINK, post_data, headers={'x-addr': '127.0.0.1'})
+    client_playlist = response.json()
 
     # Get the custom playlist URL to get playlist JSON meta data (including playlist URL)
-    response = urllib2.urlopen(urljoin(PLAYLIST_LINK, client_playlist["url"]))
-    playlist_metadata = json.load(response)
+    response = requests.get(urljoin(PLAYLIST_LINK, client_playlist["url"]))
+    playlist_metadata = response.json()
     stream_playlist_url = playlist_metadata['playlist'][0]['streamUrls']['main']
 
     # Use playlist URL to get the M3U playlist with streams
     var_parser = VariantPlaylistParser()
-    response = urllib2.urlopen(urljoin(PLAYLIST_LINK, stream_playlist_url))
-    variant_playlist = var_parser.parse(response)
+    response = requests.get(urljoin(PLAYLIST_LINK, stream_playlist_url))
+    variant_playlist = var_parser.parse(response.iter_lines())
     # Use the first stream found
     live_stream = variant_playlist[500000]
 
     playlist_parser = PlaylistParser()
     # Iteratively download the stream playlists
-    response = urllib2.urlopen(live_stream.location)
-    live_playlist = playlist_parser.parse(response, live_stream.location)
+    response = requests.get(live_stream.location)
+    live_playlist = playlist_parser.parse(response.iter_lines(), live_stream.location)
 
     while not live_playlist.end:
         print_streams(live_playlist, live_stream.location)
@@ -256,8 +247,8 @@ def main():
         # Wait playlist duration. New media item should appear on the playlist.
         time.sleep(live_playlist.duration)
         # Get new part of the playlist
-        response = urllib2.urlopen(live_stream.location)
-        live_chunk = playlist_parser.parse(response, live_stream.location)
+        response = requests.get(live_stream.location)
+        live_chunk = playlist_parser.parse(response.iter_lines(), live_stream.location)
         live_playlist.update(live_chunk)
 
     print_streams(live_playlist, live_stream.location)
