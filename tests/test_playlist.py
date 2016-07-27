@@ -3,21 +3,7 @@ Tests for playlist objects.
 """
 import unittest
 
-from televize import Media, Playlist, Stream, VariantPlaylist
-
-
-class TestVariantPlaylist(unittest.TestCase):
-    """Tests of `VariantPlaylist` object"""
-    def test_variant_playlist(self):
-        playlist = VariantPlaylist()
-
-        playlist.add(Stream('http://example.cz/stream/1', 1024))
-        playlist.add(Stream('http://example.cz/stream/2', 2048))
-
-        self.assertEqual(playlist[1024], Stream('http://example.cz/stream/1', 1024))
-        self.assertEqual(playlist[2048], Stream('http://example.cz/stream/2', 2048))
-        with self.assertRaises(KeyError):
-            playlist[4096]
+from televize import Media, Playlist
 
 
 class TestPlaylist(unittest.TestCase):

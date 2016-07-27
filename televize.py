@@ -9,6 +9,7 @@ import time
 from collections import OrderedDict, namedtuple
 from urlparse import urljoin
 
+import m3u8
 import requests
 
 PLAYLIST_LINK = 'http://www.ceskatelevize.cz/ivysilani/ajax/get-client-playlist'
@@ -35,19 +36,6 @@ for channel in CHANNEL_NAMES:
 # Based on Apple Playlist specification, see https://developer.apple.com/library/ios/technotes/tn2288/_index.html.
 #
 Media = namedtuple('Media', ('sequence', 'location', 'duration'))
-Stream = namedtuple('Stream', ('location', 'bandwidth'))
-
-
-class VariantPlaylist(object):
-    """Represents a playlist with variations of the same video in different quality."""
-    def __init__(self):
-        self._streams = {}
-
-    def __getitem__(self, key):
-        return self._streams[key]
-
-    def add(self, stream):
-        self._streams[stream.bandwidth] = stream
 
 
 class Playlist(object):
@@ -97,43 +85,6 @@ class Playlist(object):
         # Update the end flag
         if other.end:
             self.end = True
-
-
-class VariantPlaylistParser(object):
-    """
-    Parser of the variant playlists.
-    """
-    def parse(self, data):
-        "Parses file-like `data` object and returns `VariantPlaylist` object."
-        first_line = next(data, None)
-        if first_line.strip() != '#EXTM3U':
-            raise ValueError('Invalid playlist')
-
-        playlist = VariantPlaylist()
-        for line in data:
-            line = line.strip()
-            if line.startswith('#EXT-X-STREAM-INF'):
-                # Parse stream tag
-                stream = self._parse_stream(line, data)
-                playlist.add(stream)
-            else:
-                raise ValueError("Invalid playlist - unknown data: %s" % line)
-        return playlist
-
-    def _parse_stream(self, line, data):
-        "Parses `EXT-X-STREAM-INF` tag."
-        attributes = line[18:]
-        bandwidth = None
-        for chunk in attributes.split(','):
-            key, value = chunk.split('=')
-            if key == 'BANDWIDTH':
-                bandwidth = int(value)
-        if bandwidth is None:
-            raise ValueError("Invalid playlist - required BANDWIDTH attribute not found in EXT-X-STREAM-INF tag: %s" %
-                             line)
-        location = next(data)
-        location = location.strip()
-        return Stream(location, bandwidth)
 
 
 class PlaylistParser(object):
@@ -237,16 +188,15 @@ def play_live(channel, output=sys.stdout, _client=requests, _sleep=time.sleep):
     stream_playlist_url = playlist_metadata['playlist'][0]['streamUrls']['main']
 
     # Use playlist URL to get the M3U playlist with streams
-    var_parser = VariantPlaylistParser()
     response = _client.get(urljoin(PLAYLIST_LINK, stream_playlist_url))
-    variant_playlist = var_parser.parse(response.iter_lines())
+    variant_playlist = m3u8.loads(response.content)
     # Use the first stream found
-    live_stream = variant_playlist[500000]
+    live_stream = variant_playlist.playlists[0]
 
     playlist_parser = PlaylistParser()
     # Iteratively download the stream playlists
-    response = _client.get(live_stream.location)
-    live_playlist = playlist_parser.parse(response.iter_lines(), live_stream.location)
+    response = _client.get(live_stream.uri)
+    live_playlist = playlist_parser.parse(response.iter_lines(), live_stream.uri)
 
     while not live_playlist.end:
         print_streams(live_playlist, output)
@@ -254,8 +204,8 @@ def play_live(channel, output=sys.stdout, _client=requests, _sleep=time.sleep):
         # Wait playlist duration. New media item should appear on the playlist.
         _sleep(live_playlist.duration)
         # Get new part of the playlist
-        response = _client.get(live_stream.location)
-        live_chunk = playlist_parser.parse(response.iter_lines(), live_stream.location)
+        response = _client.get(live_stream.uri)
+        live_chunk = playlist_parser.parse(response.iter_lines(), live_stream.uri)
         live_playlist.update(live_chunk)
 
     print_streams(live_playlist, output)
