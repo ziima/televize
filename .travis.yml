@@ -1,0 +1,13 @@
+language: python
+sudo: false
+python:
+  - "2.7"
+install:
+  - pip install -r requirements-dev.txt
+  - pip install -r requirements.txt
+#   - pip install -e .
+  - pip list
+script:
+  - make check-isort
+  - make check-flake8
+  - make test

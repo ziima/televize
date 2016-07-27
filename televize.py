@@ -3,10 +3,10 @@
 Play Czech television stream in mplayer.
 """
 import argparse
-from collections import namedtuple, OrderedDict
 import logging
 import sys
 import time
+from collections import OrderedDict, namedtuple
 from urlparse import urljoin
 
 import requests
