@@ -20,6 +20,16 @@ CHANNEL_NAMES = OrderedDict((
     ('sport', 4),
     ('D', 5),
     ('art', 6),
+    # Summer olympic games
+    ('rio1', 26),
+    ('rio2', 27),
+    ('rio3', 28),
+    ('rio4', 29),
+    ('rio5', 30),
+    ('rio6', 31),
+    ('rio7', 32),
+    ('rio8', 33),
+    ('rio9', 34),
 ))
 
 PARSER = argparse.ArgumentParser(description="Dumps Czech television stream locations")
