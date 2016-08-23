@@ -95,53 +95,6 @@ class Playlist(object):
         # Update the end flag
         if other.end:
             self.end = True
-
-
-class PlaylistParser(object):
-    """
-    Parser of the M3U playlists.
-
-    Based on Apple Playlist specification, see https://developer.apple.com/library/ios/technotes/tn2288/_index.html.
-    """
-    def parse(self, data, playlist_url):
-        """
-        Parses file-like `data` object and returns `Playlist` object.
-
-        @param playlist_url: URL where the playlist is downloaded from
-        """
-        first_line = next(data, None)
-        if first_line.strip() != '#EXTM3U':
-            raise ValueError('Invalid playlist')
-
-        playlist = Playlist()
-        sequence = None
-        for line in data:
-            line = line.strip()
-            if line.startswith('#EXT-X-TARGETDURATION'):
-                playlist.duration = float(line[22:])
-            elif line.startswith('#EXT-X-MEDIA-SEQUENCE'):
-                sequence = int(line[22:])
-            elif line.startswith('#EXT-X-PROGRAM-DATE-TIME'):
-                pass
-            elif line.startswith('#EXTINF'):
-                # Parse media line
-                media = self._parse_media(line, data, sequence, playlist_url)
-                playlist.add(media)
-                sequence += 1
-            elif line == '#EXT-X-ENDLIST':
-                playlist.end = True
-            else:
-                raise ValueError("Invalid playlist - unknown data: %s" % line)
-        return playlist
-
-    def _parse_media(self, line, data, sequence, playlist_url):
-        "Parses `EXTINF` tag."
-        if sequence is None:
-            raise ValueError("Invalid playlist - required EXT-X-MEDIA-SEQUENCE tag not found: %s" % line)
-        location = next(data)
-        location = location.strip()
-        duration = float(line[8:])
-        return Media(sequence, urljoin(playlist_url, location), duration)
 ################################################################################
 
 
@@ -157,6 +110,19 @@ def print_streams(playlist, output=sys.stdout):
         output.write(media.location)
         output.write('\n')
         output.flush()
+
+
+def _fix_extinf(content):
+    """
+    Append the comma at the end of EXTINF tag if its missing.
+    """
+    output = []
+    for line in content.split('\n'):
+        if line.startswith(m3u8.protocol.extinf) and not line.endswith(','):
+            output.append(line + ',')
+        else:
+            output.append(line)
+    return '\n'.join(output)
 
 
 def play_live(channel, output=sys.stdout, _client=requests, _sleep=time.sleep):
@@ -203,19 +169,30 @@ def play_live(channel, output=sys.stdout, _client=requests, _sleep=time.sleep):
     # Use the first stream found
     live_stream = variant_playlist.playlists[0]
 
-    playlist_parser = PlaylistParser()
     # Iteratively download the stream playlists
     response = _client.get(live_stream.uri)
-    live_playlist = playlist_parser.parse(response.iter_lines(), live_stream.uri)
+
+    live_playlist = Playlist()
+    seq_playlist = m3u8.loads(_fix_extinf(response.content))
+    live_playlist.duration = seq_playlist.target_duration
+    for seq, segment in enumerate(seq_playlist.segments, seq_playlist.media_sequence):
+        live_playlist.add(Media(seq, urljoin(live_stream.uri, segment.uri), segment.duration))
+    live_playlist.end = seq_playlist.is_endlist
 
     while not live_playlist.end:
         print_streams(live_playlist, output)
 
         # Wait playlist duration. New media item should appear on the playlist.
         _sleep(live_playlist.duration)
+
         # Get new part of the playlist
+        live_chunk = Playlist()
         response = _client.get(live_stream.uri)
-        live_chunk = playlist_parser.parse(response.iter_lines(), live_stream.uri)
+        seq_playlist = m3u8.loads(_fix_extinf(response.content))
+        for seq, segment in enumerate(seq_playlist.segments, seq_playlist.media_sequence):
+            live_chunk.add(Media(seq, urljoin(live_stream.uri, segment.uri), segment.duration))
+        live_chunk.end = seq_playlist.is_endlist
+
         live_playlist.update(live_chunk)
 
     print_streams(live_playlist, output)
