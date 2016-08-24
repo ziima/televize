@@ -6,7 +6,7 @@ import argparse
 import logging
 import sys
 import time
-from collections import OrderedDict, namedtuple
+from collections import OrderedDict
 from urlparse import urljoin
 
 import m3u8
@@ -31,63 +31,6 @@ for channel in CHANNEL_NAMES:
 
 
 ################################################################################
-# Extended M3U playlists
-#
-# Based on Apple Playlist specification, see https://developer.apple.com/library/ios/technotes/tn2288/_index.html.
-#
-Media = namedtuple('Media', ('sequence', 'location', 'duration'))
-
-
-class Playlist(object):
-    """Represents a playlist contents
-
-    @ivar duration: Maximum media file duration.
-    """
-    def __init__(self):
-        self.duration = None
-        self._items = OrderedDict()
-        self._last_item = None
-        self.end = False
-
-    def __nonzero__(self):
-        return bool(self._items)
-
-    def __iter__(self):
-        for item in self._items.values():
-            yield item
-
-    def add(self, media):
-        """Add Media item into playlist"""
-        if media.sequence in self._items:
-            raise ValueError("Media can't be added to playlist - sequence number already used.")
-        self._items[media.sequence] = media
-        self._last_item = media
-
-    def pop(self):
-        if not self._items:
-            return
-
-        return self._items.popitem(last=False)[1]
-
-    def update(self, other):
-        """
-        Update playlist with data from other playlist.
-        """
-        if self.end:
-            raise ValueError("This playlist already ended.")
-
-        for media in other:
-            # Playlists' items may overlay - skip items from other playlist which matches items in this playlist.
-            if self._last_item is not None and media.sequence <= self._last_item.sequence:
-                continue
-            self.add(media)
-
-        # Update the end flag
-        if other.end:
-            self.end = True
-################################################################################
-
-
 class LiveStream(object):
     """
     Handles live stream segments from playlists.
@@ -155,8 +98,6 @@ class LiveStream(object):
 
 
 ################################################################################
-
-
 def print_streams(stream, base_url, output=sys.stdout):
     """
     Print streams from playlist to the output.
