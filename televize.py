@@ -157,16 +157,17 @@ class LiveStream(object):
 ################################################################################
 
 
-def print_streams(playlist, output=sys.stdout):
+def print_streams(stream, base_url, output=sys.stdout):
     """
     Print streams from playlist to the output.
 
     @param playlist: Playlist do be printed
+    @param base_url: Base URL for segment URIs
     @param output: File-like object to write into
     """
-    while playlist:
-        media = playlist.pop()
-        output.write(media.location)
+    while stream:
+        segment = stream.pop()
+        output.write(urljoin(base_url, segment.uri))
         output.write('\n')
         output.flush()
 
@@ -226,35 +227,25 @@ def play_live(channel, output=sys.stdout, _client=requests, _sleep=time.sleep):
     response = _client.get(urljoin(PLAYLIST_LINK, stream_playlist_url))
     variant_playlist = m3u8.loads(response.content)
     # Use the first stream found
-    live_stream = variant_playlist.playlists[0]
+    live_playlist = variant_playlist.playlists[0]
+
+    # Initialize the stream
+    stream = LiveStream()
+    response = _client.get(live_playlist.uri)
+    stream.update(m3u8.loads(_fix_extinf(response.content)))
 
     # Iteratively download the stream playlists
-    response = _client.get(live_stream.uri)
-
-    live_playlist = Playlist()
-    seq_playlist = m3u8.loads(_fix_extinf(response.content))
-    live_playlist.duration = seq_playlist.target_duration
-    for seq, segment in enumerate(seq_playlist.segments, seq_playlist.media_sequence):
-        live_playlist.add(Media(seq, urljoin(live_stream.uri, segment.uri), segment.duration))
-    live_playlist.end = seq_playlist.is_endlist
-
-    while not live_playlist.end:
-        print_streams(live_playlist, output)
+    while not stream.end:
+        print_streams(stream, live_playlist.uri, output)
 
         # Wait playlist duration. New media item should appear on the playlist.
-        _sleep(live_playlist.duration)
+        _sleep(stream.last_played.duration)
 
-        # Get new part of the playlist
-        live_chunk = Playlist()
-        response = _client.get(live_stream.uri)
-        seq_playlist = m3u8.loads(_fix_extinf(response.content))
-        for seq, segment in enumerate(seq_playlist.segments, seq_playlist.media_sequence):
-            live_chunk.add(Media(seq, urljoin(live_stream.uri, segment.uri), segment.duration))
-        live_chunk.end = seq_playlist.is_endlist
+        # Get new part of the stream
+        response = _client.get(live_playlist.uri)
+        stream.update(m3u8.loads(_fix_extinf(response.content)))
 
-        live_playlist.update(live_chunk)
-
-    print_streams(live_playlist, output)
+    print_streams(stream, live_playlist.uri, output)
 
 
 def main():
