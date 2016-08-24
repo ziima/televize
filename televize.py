@@ -88,6 +88,67 @@ class Playlist(object):
 ################################################################################
 
 
+class LiveStream(object):
+    """
+    Handles live stream segments from playlists.
+
+    @ivar end: Whether the live stream ended.
+    """
+    # Max number of old segments
+    _history = 10
+
+    def __init__(self):
+        # Segments to be played
+        self._segments = []
+        self.end = False
+        # Segments already played
+        self._old_segments = []
+
+    @property
+    def last_played(self):
+        """
+        Returns the last played segment.
+        """
+        if not self._old_segments:
+            return None
+        return self._old_segments[-1]
+
+    def pop(self):
+        """
+        Pops the first segment.
+        """
+        if not self._segments:
+            return None
+
+        seg = self._segments.pop(0)
+        self._old_segments.append(seg)
+        self._old_segments = self._old_segments[-self._history:]
+        return seg
+
+    def update(self, playlist):
+        """
+        Updates live stream with segments from playlist.
+        """
+        if self.end:
+            raise ValueError("This stream already ended.")
+
+        new_segments = playlist.segments
+
+        # Remove segments which are older than end of stream
+        if self._segments:
+            last_segment = self._segments[-1]  # Last segment in stream
+            new_segments = (s for s in new_segments if s.program_date_time > last_segment.program_date_time)
+
+        self._segments.extend(new_segments)
+
+        # Mark the stream as ended if required
+        if playlist.is_endlist:
+            self.end = True
+
+
+################################################################################
+
+
 def print_streams(playlist, output=sys.stdout):
     """
     Print streams from playlist to the output.
