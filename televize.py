@@ -104,6 +104,9 @@ class LiveStream(object):
         # Segments already played
         self._old_segments = []
 
+    def __nonzero__(self):
+        return bool(self._segments)
+
     @property
     def last_played(self):
         """
@@ -137,6 +140,11 @@ class LiveStream(object):
         # Remove segments which are older than end of stream
         if self._segments:
             last_segment = self._segments[-1]  # Last segment in stream
+        elif self.last_played:
+            last_segment = self.last_played
+        else:
+            last_segment = None
+        if last_segment:
             new_segments = (s for s in new_segments if s.program_date_time > last_segment.program_date_time)
 
         self._segments.extend(new_segments)

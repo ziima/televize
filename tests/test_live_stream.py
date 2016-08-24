@@ -15,6 +15,13 @@ class TestLiveStream(unittest.TestCase):
         data = open(os.path.join(os.path.dirname(__file__), 'data', filename)).read()
         return m3u8.loads(_fix_extinf(data))
 
+    def test_bool(self):
+        self.assertFalse(LiveStream())
+
+        stream = LiveStream()
+        stream.update(self.get_playlist('playlist.m3u8'))
+        self.assertTrue(stream)
+
     def test_last_played_empty(self):
         stream = LiveStream()
         self.assertIsNone(stream.last_played)
@@ -55,6 +62,18 @@ class TestLiveStream(unittest.TestCase):
         self.assertEqual(stream.pop().uri, '1502/57481956.ts')
         self.assertEqual(stream.pop().uri, '1502/57481957.ts')
         self.assertEqual(stream.pop().uri, '1502/57481958.ts')
+        self.assertIsNone(stream.pop())
+
+    def test_update_played(self):
+        # The duplicates are removed even if the segments have already been played
+        stream = LiveStream()
+        stream.update(self.get_playlist('playlist.m3u8'))
+        stream.pop()
+        stream.pop()
+        stream.pop()
+        stream.update(self.get_playlist('playlist.m3u8'))
+
+        self.assertFalse(stream.end)
         self.assertIsNone(stream.pop())
 
     def test_update_join(self):
