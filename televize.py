@@ -7,6 +7,7 @@ import logging
 import sys
 import time
 from collections import OrderedDict
+from datetime import timedelta
 from urlparse import urljoin
 
 import m3u8
@@ -88,7 +89,8 @@ class LiveStream(object):
         else:
             last_segment = None
         if last_segment:
-            new_segments = (s for s in new_segments if s.program_date_time > last_segment.program_date_time)
+            end_of_stream = last_segment.program_date_time + timedelta(seconds=last_segment.duration)
+            new_segments = (s for s in new_segments if s.program_date_time >= end_of_stream)
 
         self._segments.extend(new_segments)
 
@@ -108,7 +110,9 @@ def print_streams(stream, base_url, output=sys.stdout):
     """
     while stream:
         segment = stream.pop()
-        output.write(urljoin(base_url, segment.uri))
+        url = urljoin(base_url, segment.uri)
+        logging.debug("URL: %s", url)
+        output.write(url)
         output.write('\n')
         output.flush()
 
@@ -166,6 +170,7 @@ def play_live(channel, output=sys.stdout, _client=requests, _sleep=time.sleep):
 
     # Use playlist URL to get the M3U playlist with streams
     response = _client.get(urljoin(PLAYLIST_LINK, stream_playlist_url))
+    logging.debug("Variant playlist: %s", response.content)
     variant_playlist = m3u8.loads(response.content)
     # Use the first stream found
     live_playlist = variant_playlist.playlists[0]
@@ -173,6 +178,7 @@ def play_live(channel, output=sys.stdout, _client=requests, _sleep=time.sleep):
     # Initialize the stream
     stream = LiveStream()
     response = _client.get(live_playlist.uri)
+    logging.debug("Stream playlist: %s", response.content)
     stream.update(m3u8.loads(_fix_extinf(response.content)))
 
     # Iteratively download the stream playlists
@@ -184,6 +190,7 @@ def play_live(channel, output=sys.stdout, _client=requests, _sleep=time.sleep):
 
         # Get new part of the stream
         response = _client.get(live_playlist.uri)
+        logging.debug("Stream playlist: %s", response.content)
         stream.update(m3u8.loads(_fix_extinf(response.content)))
 
     print_streams(stream, live_playlist.uri, output)
@@ -196,6 +203,7 @@ def main():
     else:
         level = logging.WARNING
     logging.basicConfig(stream=sys.stderr, level=level)
+    logging.getLogger('iso8601').setLevel(logging.WARN)
 
     play_live(args.channel)
 
