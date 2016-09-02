@@ -112,9 +112,11 @@ class TestLiveStream(unittest.TestCase):
         stream = LiveStream()
         stream.update(self.get_playlist(os.path.join('date_time_shift', 'playlist_1.m3u8')))
         stream.update(self.get_playlist(os.path.join('date_time_shift', 'playlist_2.m3u8')))
+        stream.update(self.get_playlist(os.path.join('date_time_shift', 'playlist_3.m3u8')))
 
         self.assertEqual(stream.pop().uri, '1502/61784492.ts')
         self.assertEqual(stream.pop().uri, '1502/61784493.ts')
         self.assertEqual(stream.pop().uri, '1502/61784494.ts')
         self.assertEqual(stream.pop().uri, '1502/61784495.ts')
+        self.assertEqual(stream.pop().uri, '1502/61784496.ts')
         self.assertIsNone(stream.pop())

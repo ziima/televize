@@ -47,6 +47,8 @@ class LiveStream(object):
         self.end = False
         # Segments already played
         self._old_segments = []
+        # EXT-X-MEDIA-SEQUENCE of the last item in the live stream
+        self._last_media_sequence = None
 
     def __nonzero__(self):
         return bool(self._segments)
@@ -81,18 +83,16 @@ class LiveStream(object):
 
         new_segments = playlist.segments
 
-        # Remove segments which are older than end of stream
-        if self._segments:
-            last_segment = self._segments[-1]  # Last segment in stream
-        elif self.last_played:
-            last_segment = self.last_played
-        else:
-            last_segment = None
-        if last_segment:
-            end_of_stream = last_segment.program_date_time + timedelta(seconds=last_segment.duration)
-            new_segments = (s for s in new_segments if s.program_date_time >= end_of_stream)
+        # Add only segments which were not part of the stream
+        if self._last_media_sequence:
+            new_segments = (s for i, s in enumerate(new_segments, start=playlist.media_sequence)
+                            if i > self._last_media_sequence)
 
         self._segments.extend(new_segments)
+
+        # Update `_last_media_sequence` to the index of the last item in `playlist`
+        if new_segments:
+            self._last_media_sequence = playlist.media_sequence + len(playlist.segments) - 1
 
         # Mark the stream as ended if required
         if playlist.is_endlist:
