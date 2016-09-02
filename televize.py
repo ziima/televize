@@ -129,13 +129,12 @@ def _fix_extinf(content):
     return '\n'.join(output)
 
 
-def play_live(channel, output=sys.stdout, _client=requests, _sleep=time.sleep):
+def get_playlist(channel, _client=requests):
     """
-    Play live CT channel
+    Extract the playlist for CT channel.
 
     @param channel: Name of the channel
     @param _client: HTTP client. Used by tests
-    @param _sleep: Sleep function
     """
     # TODO: We shold parse the `content` from the flash player to find playlist data from `getPlaylistUrl` calls.
     # from lxml import etree
@@ -172,27 +171,38 @@ def play_live(channel, output=sys.stdout, _client=requests, _sleep=time.sleep):
     logging.debug("Variant playlist: %s", response.content)
     variant_playlist = m3u8.loads(response.content)
     # Use the first stream found
-    live_playlist = variant_playlist.playlists[0]
+    # TODO: Select variant based on requested quality
+    return variant_playlist.playlists[0]
 
+
+def play_live(playlist, output=sys.stdout, _client=requests, _sleep=time.sleep):
+    """
+    Play live CT channel
+
+    @param channel: Name of the channel
+    @param output: File-like object to write into
+    @param _client: HTTP client. Used by tests
+    @param _sleep: Sleep function
+    """
     # Initialize the stream
     stream = LiveStream()
-    response = _client.get(live_playlist.uri)
+    response = _client.get(playlist.uri)
     logging.debug("Stream playlist: %s", response.content)
     stream.update(m3u8.loads(_fix_extinf(response.content)))
 
     # Iteratively download the stream playlists
     while not stream.end:
-        print_streams(stream, live_playlist.uri, output)
+        print_streams(stream, playlist.uri, output)
 
         # Wait playlist duration. New media item should appear on the playlist.
         _sleep(stream.last_played.duration)
 
         # Get new part of the stream
-        response = _client.get(live_playlist.uri)
+        response = _client.get(playlist.uri)
         logging.debug("Stream playlist: %s", response.content)
         stream.update(m3u8.loads(_fix_extinf(response.content)))
 
-    print_streams(stream, live_playlist.uri, output)
+    print_streams(stream, playlist.uri, output)
 
 
 def main():
@@ -204,7 +214,8 @@ def main():
     logging.basicConfig(stream=sys.stderr, level=level)
     logging.getLogger('iso8601').setLevel(logging.WARN)
 
-    play_live(args.channel)
+    playlist = get_playlist(args.channel)
+    play_live(playlist)
 
 
 if __name__ == '__main__':
