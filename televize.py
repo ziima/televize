@@ -7,7 +7,6 @@ import logging
 import sys
 import time
 from collections import OrderedDict
-from datetime import timedelta
 from urlparse import urljoin
 
 import m3u8
