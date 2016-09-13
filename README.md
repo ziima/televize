@@ -5,9 +5,7 @@ Script to run stream of Czech Television (Česká televize) in mplayer.
  * python 2.7
  * requests
  * m3u8
- * curl
  * mplayer
- * bash
 
 ### Usage ###
 ```sh

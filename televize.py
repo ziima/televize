@@ -7,6 +7,7 @@ import logging
 import sys
 import time
 from collections import OrderedDict
+from subprocess import PIPE, Popen
 from urlparse import urljoin
 
 import m3u8
@@ -99,21 +100,22 @@ class LiveStream(object):
 
 
 ################################################################################
-def print_streams(stream, base_url, output=sys.stdout):
+def feed_stream(stream, base_url, mplayer):
     """
-    Print streams from playlist to the output.
+    Feed segments from stream to the mplayer.
 
-    @param playlist: Playlist do be printed
+    @param stream: Stream to be played
+    @type stream: `LiveStream`
     @param base_url: Base URL for segment URIs
-    @param output: File-like object to write into
+    @param mplayer: Process with mplayer
+    @type mplayer: `subprocess.Popen`
     """
     while stream:
         segment = stream.pop()
         url = urljoin(base_url, segment.uri)
         logging.debug("URL: %s", url)
-        output.write(url)
-        output.write('\n')
-        output.flush()
+        chunk = requests.get(url)
+        mplayer.stdin.write(chunk.content)
 
 
 def _fix_extinf(content):
@@ -175,34 +177,34 @@ def get_playlist(channel, _client=requests):
     return variant_playlist.playlists[0]
 
 
-def play_live(playlist, output=sys.stdout, _client=requests, _sleep=time.sleep):
+def play_live(playlist, _sleep=time.sleep):
     """
     Play live CT channel
 
     @param channel: Name of the channel
-    @param output: File-like object to write into
-    @param _client: HTTP client. Used by tests
     @param _sleep: Sleep function
     """
     # Initialize the stream
     stream = LiveStream()
-    response = _client.get(playlist.uri)
+    response = requests.get(playlist.uri)
     logging.debug("Stream playlist: %s", response.content)
     stream.update(m3u8.loads(_fix_extinf(response.content)))
 
+    mplayer = Popen(['mplayer', '-cache', '2000', '-cache-min', '50', '-'], stdin=PIPE)
+
     # Iteratively download the stream playlists
     while not stream.end:
-        print_streams(stream, playlist.uri, output)
+        feed_stream(stream, playlist.uri, mplayer)
 
         # Wait playlist duration. New media item should appear on the playlist.
         _sleep(stream.last_played.duration)
 
         # Get new part of the stream
-        response = _client.get(playlist.uri)
+        response = requests.get(playlist.uri)
         logging.debug("Stream playlist: %s", response.content)
         stream.update(m3u8.loads(_fix_extinf(response.content)))
 
-    print_streams(stream, playlist.uri, output)
+    feed_stream(stream, playlist.uri, mplayer)
 
 
 def main():
@@ -211,7 +213,7 @@ def main():
         level = logging.DEBUG
     else:
         level = logging.WARNING
-    logging.basicConfig(stream=sys.stderr, level=level)
+    logging.basicConfig(stream=sys.stderr, level=level, format='%(asctime)s %(levelname)s:%(funcName)s:%(message)s')
     logging.getLogger('iso8601').setLevel(logging.WARN)
 
     playlist = get_playlist(args.channel)

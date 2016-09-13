@@ -4,9 +4,10 @@ Test live streaming
 import os.path
 import unittest
 from cStringIO import StringIO
+from subprocess import PIPE
 
 from m3u8.model import Playlist
-from mock import Mock, call
+from mock import Mock, call, patch, sentinel
 from requests import Response
 
 from televize import get_playlist, play_live
@@ -54,28 +55,51 @@ class TestGetPlaylist(unittest.TestCase):
 
 class TestPlayLive(unittest.TestCase):
     """Test `play_live` function"""
+    def setUp(self):
+        patcher = patch('televize.requests')
+        self.addCleanup(patcher.stop)
+        self.requests_mock = patcher.start()
+
+        popen_patcher = patch('televize.Popen')
+        self.addCleanup(popen_patcher.stop)
+        self.popen_mock = popen_patcher.start()
+
     def test_play_live(self):
-        requests_mock = Mock()
         get_responses = [
             _make_response(open(os.path.join(os.path.dirname(__file__), "data/play_live/playlist_1.m3u")).read()),
+            Mock(content=sentinel.data_1),
+            Mock(content=sentinel.data_2),
+            Mock(content=sentinel.data_3),
             _make_response(open(os.path.join(os.path.dirname(__file__), "data/play_live/playlist_2.m3u")).read()),
+            Mock(content=sentinel.data_4),
         ]
-        requests_mock.get.side_effect = get_responses
+        self.requests_mock.get.side_effect = get_responses
         sleep_mock = Mock()
-        output = StringIO()
         playlist_uri = 'http://80.188.78.151:80/atip/fd2eccaa99022586e14694df91068915/1449324471384/' \
                        '3616440c710a1d7e3f54761a6d940c64/2402-tv-pc/1502.m3u8'
         playlist = Playlist(playlist_uri, {'bandwidth': 500000}, None, None)
 
-        play_live(playlist, output, _client=requests_mock, _sleep=sleep_mock)
+        play_live(playlist, _sleep=sleep_mock)
 
-        self.assertEqual(output.getvalue(),
-                         open(os.path.join(os.path.dirname(__file__), "data/play_live/output")).read())
         calls = [
             call.get('http://80.188.78.151:80/atip/fd2eccaa99022586e14694df91068915/1449324471384/'
                      '3616440c710a1d7e3f54761a6d940c64/2402-tv-pc/1502.m3u8'),
             call.get('http://80.188.78.151:80/atip/fd2eccaa99022586e14694df91068915/1449324471384/'
+                     '3616440c710a1d7e3f54761a6d940c64/2402-tv-pc/1502/58877187.ts'),
+            call.get('http://80.188.78.151:80/atip/fd2eccaa99022586e14694df91068915/1449324471384/'
+                     '3616440c710a1d7e3f54761a6d940c64/2402-tv-pc/1502/58877188.ts'),
+            call.get('http://80.188.78.151:80/atip/fd2eccaa99022586e14694df91068915/1449324471384/'
+                     '3616440c710a1d7e3f54761a6d940c64/2402-tv-pc/1502/58877189.ts'),
+            call.get('http://80.188.78.151:80/atip/fd2eccaa99022586e14694df91068915/1449324471384/'
                      '3616440c710a1d7e3f54761a6d940c64/2402-tv-pc/1502.m3u8'),
+            call.get('http://80.188.78.151:80/atip/fd2eccaa99022586e14694df91068915/1449324471384/'
+                     '3616440c710a1d7e3f54761a6d940c64/2402-tv-pc/1502/58877190.ts'),
         ]
-        self.assertEqual(requests_mock.mock_calls, calls)
+        self.assertEqual(self.requests_mock.mock_calls, calls)
         self.assertEqual(sleep_mock.mock_calls, [call(8.0)])
+        popen_calls = [call(['mplayer', '-cache', '2000', '-cache-min', '50', '-'], stdin=PIPE),
+                       call().stdin.write(sentinel.data_1),
+                       call().stdin.write(sentinel.data_2),
+                       call().stdin.write(sentinel.data_3),
+                       call().stdin.write(sentinel.data_4)]
+        self.assertEqual(self.popen_mock.mock_calls, popen_calls)
