@@ -29,6 +29,7 @@ CHANNEL_NAMES = OrderedDict((
 
 PARSER = argparse.ArgumentParser(description="Dumps Czech television stream locations")
 PARSER.add_argument('--debug', action='store_true', help="print debug messages")
+PARSER.add_argument('--version', action='version', version=__version__)
 
 LIVE_SUBPARSERS = PARSER.add_subparsers(help="CT live", dest="channel")
 for channel in CHANNEL_NAMES:
