@@ -1,6 +1,15 @@
 # televize #
 Script to run stream of Czech Television (Česká televize) in mplayer.
 
+### Installation ###
+```sh
+pip install https://github.com/ziima/televize/archive/master.zip
+```
+or
+```sh
+python setup.py install
+```
+
 ### Dependencies ###
  * python 2.7
  * requests

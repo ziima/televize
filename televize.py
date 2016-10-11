@@ -13,6 +13,10 @@ from urlparse import urljoin
 import m3u8
 import requests
 
+
+__version__ = '0.1a'
+
+
 PLAYLIST_LINK = 'http://www.ceskatelevize.cz/ivysilani/ajax/get-client-playlist'
 CHANNEL_NAMES = OrderedDict((
     ('1', 1),
