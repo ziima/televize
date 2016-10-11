@@ -28,15 +28,17 @@ CHANNEL_NAMES = OrderedDict((
     ('art', 6),
 ))
 
-PARSER = argparse.ArgumentParser(description="Plays Czech television streams in custom player")
-PARSER.add_argument('--debug', action='store_true', help="print debug messages")
-PARSER.add_argument('--version', action='version', version=__version__)
-PARSER.add_argument('--player', default='mplayer -cache 2000 -cache-min 50 -',
-                    help="player command [default: '%(default)s']")
+_BASE_PARSER = argparse.ArgumentParser(add_help=False)
+_BASE_PARSER.add_argument('--debug', action='store_true', help="print debug messages")
+_BASE_PARSER.add_argument('--version', action='version', version=__version__)
+_BASE_PARSER.add_argument('--player', default='mplayer -cache 2000 -cache-min 50 -',
+                          help="player command [default: '%(default)s']")
 
+PARSER = argparse.ArgumentParser(description="Plays Czech television streams in custom player", parents=[_BASE_PARSER])
 LIVE_SUBPARSERS = PARSER.add_subparsers(help="CT live", dest="channel")
 for channel in CHANNEL_NAMES:
-    LIVE_SUBPARSERS.add_parser(channel, description="CT%s live" % channel, help="CT%s live" % channel)
+    LIVE_SUBPARSERS.add_parser(channel, description="Play CT%s live" % channel, help="Play CT%s live" % channel,
+                               parents=[_BASE_PARSER])
 
 
 ################################################################################
