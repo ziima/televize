@@ -1,5 +1,5 @@
 # televize #
-Script to run stream of Czech Television (Česká televize) in mplayer.
+Script to play Czech Television (Česká televize) streams in custom player.
 
 ### Installation ###
 ```sh
@@ -14,7 +14,7 @@ python setup.py install
  * python 2.7
  * requests
  * m3u8
- * mplayer
+ * Any player which can play stream from stdin. mplayer is used by default.
 
 ### Usage ###
 ```sh

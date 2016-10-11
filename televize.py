@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 """
-Play Czech television stream in mplayer.
+Play Czech television stream in custom player.
 """
 import argparse
 import logging
+import shlex
 import sys
 import time
 from collections import OrderedDict
@@ -27,9 +28,11 @@ CHANNEL_NAMES = OrderedDict((
     ('art', 6),
 ))
 
-PARSER = argparse.ArgumentParser(description="Dumps Czech television stream locations")
+PARSER = argparse.ArgumentParser(description="Plays Czech television streams in custom player")
 PARSER.add_argument('--debug', action='store_true', help="print debug messages")
 PARSER.add_argument('--version', action='version', version=__version__)
+PARSER.add_argument('--player', default='mplayer -cache 2000 -cache-min 50 -',
+                    help="player command [default: '%(default)s']")
 
 LIVE_SUBPARSERS = PARSER.add_subparsers(help="CT live", dest="channel")
 for channel in CHANNEL_NAMES:
@@ -105,22 +108,22 @@ class LiveStream(object):
 
 
 ################################################################################
-def feed_stream(stream, base_url, mplayer):
+def feed_stream(stream, base_url, player):
     """
-    Feed segments from stream to the mplayer.
+    Feed segments from stream to the player.
 
     @param stream: Stream to be played
     @type stream: `LiveStream`
     @param base_url: Base URL for segment URIs
-    @param mplayer: Process with mplayer
-    @type mplayer: `subprocess.Popen`
+    @param player: Process with player
+    @type player: `subprocess.Popen`
     """
     while stream:
         segment = stream.pop()
         url = urljoin(base_url, segment.uri)
         logging.debug("URL: %s", url)
         chunk = requests.get(url)
-        mplayer.stdin.write(chunk.content)
+        player.stdin.write(chunk.content)
 
 
 def _fix_extinf(content):
@@ -182,11 +185,13 @@ def get_playlist(channel, _client=requests):
     return variant_playlist.playlists[0]
 
 
-def play_live(playlist, _sleep=time.sleep):
+def play_live(playlist, player_cmd, _sleep=time.sleep):
     """
     Play live CT channel
 
     @param channel: Name of the channel
+    @param player_cmd: Additional player arguments
+    @type player_cmd: str
     @param _sleep: Sleep function
     """
     # Initialize the stream
@@ -195,11 +200,13 @@ def play_live(playlist, _sleep=time.sleep):
     logging.debug("Stream playlist: %s", response.content)
     stream.update(m3u8.loads(_fix_extinf(response.content)))
 
-    mplayer = Popen(['mplayer', '-cache', '2000', '-cache-min', '50', '-'], stdin=PIPE)
+    cmd = shlex.split(player_cmd)
+    logging.debug("Player cmd: %s", cmd)
+    player = Popen(cmd, stdin=PIPE)
 
     # Iteratively download the stream playlists
     while not stream.end:
-        feed_stream(stream, playlist.uri, mplayer)
+        feed_stream(stream, playlist.uri, player)
 
         # Wait playlist duration. New media item should appear on the playlist.
         _sleep(stream.last_played.duration)
@@ -209,20 +216,20 @@ def play_live(playlist, _sleep=time.sleep):
         logging.debug("Stream playlist: %s", response.content)
         stream.update(m3u8.loads(_fix_extinf(response.content)))
 
-    feed_stream(stream, playlist.uri, mplayer)
+    feed_stream(stream, playlist.uri, player)
 
 
 def main():
-    args = PARSER.parse_args()
-    if args.debug:
+    options = PARSER.parse_args()
+    if options.debug:
         level = logging.DEBUG
     else:
         level = logging.WARNING
     logging.basicConfig(stream=sys.stderr, level=level, format='%(asctime)s %(levelname)s:%(funcName)s:%(message)s')
     logging.getLogger('iso8601').setLevel(logging.WARN)
 
-    playlist = get_playlist(args.channel)
-    play_live(playlist)
+    playlist = get_playlist(options.channel)
+    play_live(playlist, options.player)
 
 
 if __name__ == '__main__':
