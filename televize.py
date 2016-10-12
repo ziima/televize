@@ -1,8 +1,25 @@
 #!/usr/bin/env python
 """
-Play Czech television stream in custom player.
+Plays Czech television stream in custom player
+
+Usage: televize.py [options] <channel>
+       televize.py -h | --help
+       televize.py --version
+
+Channels:
+  1                    CT1
+  2                    CT2
+  24                   CT24
+  sport                CTsport
+  D                    CT:D
+  art                  CTart
+
+Options:
+  -h, --help           show this help message and exit
+  --version            show program's version number and exit
+  -p, --player=PLAYER  player command [default: mpv -]
+  -d, --debug          print debug messages
 """
-import argparse
 import logging
 import shlex
 import sys
@@ -13,6 +30,7 @@ from urlparse import urljoin
 
 import m3u8
 import requests
+from docopt import docopt
 
 
 __version__ = '0.1a'
@@ -27,18 +45,6 @@ CHANNEL_NAMES = OrderedDict((
     ('D', 5),
     ('art', 6),
 ))
-
-_BASE_PARSER = argparse.ArgumentParser(add_help=False)
-_BASE_PARSER.add_argument('--debug', action='store_true', help="print debug messages")
-_BASE_PARSER.add_argument('--version', action='version', version=__version__)
-_BASE_PARSER.add_argument('--player', default='mplayer -cache 2000 -cache-min 50 -',
-                          help="player command [default: '%(default)s']")
-
-PARSER = argparse.ArgumentParser(description="Plays Czech television streams in custom player", parents=[_BASE_PARSER])
-LIVE_SUBPARSERS = PARSER.add_subparsers(help="CT live", dest="channel")
-for channel in CHANNEL_NAMES:
-    LIVE_SUBPARSERS.add_parser(channel, description="Play CT%s live" % channel, help="Play CT%s live" % channel,
-                               parents=[_BASE_PARSER])
 
 
 ################################################################################
@@ -222,16 +228,18 @@ def play_live(playlist, player_cmd, _sleep=time.sleep):
 
 
 def main():
-    options = PARSER.parse_args()
-    if options.debug:
+    options = docopt(__doc__, version=__version__)
+    if options['<channel>'] not in CHANNEL_NAMES:
+        exit("Unknown channel")
+    if options['--debug']:
         level = logging.DEBUG
     else:
         level = logging.WARNING
     logging.basicConfig(stream=sys.stderr, level=level, format='%(asctime)s %(levelname)s:%(funcName)s:%(message)s')
     logging.getLogger('iso8601').setLevel(logging.WARN)
 
-    playlist = get_playlist(options.channel)
-    play_live(playlist, options.player)
+    playlist = get_playlist(options['<channel>'])
+    play_live(playlist, options['--player'])
 
 
 if __name__ == '__main__':
