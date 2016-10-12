@@ -26,12 +26,15 @@ import sys
 import time
 from collections import OrderedDict
 from subprocess import PIPE, Popen
-from urlparse import urljoin
 
 import m3u8
 import requests
 from docopt import docopt
 
+try:
+    from urllib.parse import urljoin  # Python3
+except ImportError:
+    from urlparse import urljoin  # Python2
 
 __version__ = '0.1a'
 
@@ -66,7 +69,10 @@ class LiveStream(object):
         # EXT-X-MEDIA-SEQUENCE of the last item in the live stream
         self._last_media_sequence = None
 
-    def __nonzero__(self):
+    def __bool__(self):  # Python3
+        return bool(self._segments)
+
+    def __nonzero__(self):  # Python2
         return bool(self._segments)
 
     @property
@@ -186,8 +192,8 @@ def get_playlist(channel, _client=requests):
 
     # Use playlist URL to get the M3U playlist with streams
     response = _client.get(urljoin(PLAYLIST_LINK, stream_playlist_url))
-    logging.debug("Variant playlist: %s", response.content)
-    variant_playlist = m3u8.loads(response.content)
+    logging.debug("Variant playlist: %s", response.text)
+    variant_playlist = m3u8.loads(response.text)
     # Use the first stream found
     # TODO: Select variant based on requested quality
     return variant_playlist.playlists[0]
@@ -205,8 +211,8 @@ def play_live(playlist, player_cmd, _sleep=time.sleep):
     # Initialize the stream
     stream = LiveStream()
     response = requests.get(playlist.uri)
-    logging.debug("Stream playlist: %s", response.content)
-    stream.update(m3u8.loads(_fix_extinf(response.content)))
+    logging.debug("Stream playlist: %s", response.text)
+    stream.update(m3u8.loads(_fix_extinf(response.text)))
 
     cmd = shlex.split(player_cmd)
     logging.debug("Player cmd: %s", cmd)
@@ -221,8 +227,8 @@ def play_live(playlist, player_cmd, _sleep=time.sleep):
 
         # Get new part of the stream
         response = requests.get(playlist.uri)
-        logging.debug("Stream playlist: %s", response.content)
-        stream.update(m3u8.loads(_fix_extinf(response.content)))
+        logging.debug("Stream playlist: %s", response.text)
+        stream.update(m3u8.loads(_fix_extinf(response.text)))
 
     feed_stream(stream, playlist.uri, player)
 

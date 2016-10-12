@@ -11,7 +11,7 @@ python setup.py install
 ```
 
 ### Dependencies ###
- * python 2.7
+ * python 2.7, 3.4 or 3.5
  * requests
  * m3u8
  * Any player which can play stream from stdin. mplayer is used by default.

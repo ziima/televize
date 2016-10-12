@@ -2,10 +2,14 @@ language: python
 sudo: false
 python:
   - "2.7"
+  - "3.4"
+  - "3.5"
+  - "3.5-dev"
+  - "3.6-dev"
+  - "nightly"
 install:
   - pip install -r requirements-dev.txt
-  - pip install -r requirements.txt
-#   - pip install -e .
+  - pip install .
   - pip list
 script:
   - make check-isort

@@ -3,19 +3,23 @@ Test live streaming
 """
 import os.path
 import unittest
-from cStringIO import StringIO
+from io import BytesIO
 from subprocess import PIPE
 
 from m3u8.model import Playlist
-from mock import Mock, call, patch, sentinel
 from requests import Response
 
 from televize import get_playlist, play_live
 
+try:
+    from unittest.mock import Mock, call, patch, sentinel  # Python3
+except ImportError:
+    from mock import Mock, call, patch, sentinel  # Python2
+
 
 def _make_response(content):
     response = Response()
-    response.raw = StringIO(content)
+    response.raw = BytesIO(content)
     return response
 
 
@@ -24,11 +28,15 @@ class TestGetPlaylist(unittest.TestCase):
     def test_get_playlist(self):
         requests_mock = Mock()
         get_responses = [
-            _make_response(open(os.path.join(os.path.dirname(__file__), "data/play_live/client_playlist.json")).read()),
-            _make_response(open(os.path.join(os.path.dirname(__file__), "data/play_live/stream_playlist.m3u")).read()),
+            _make_response(
+                open(os.path.join(os.path.dirname(__file__), "data/play_live/client_playlist.json"), mode='rb').read(),
+            ),
+            _make_response(
+                open(os.path.join(os.path.dirname(__file__), "data/play_live/stream_playlist.m3u"), mode='rb').read(),
+            ),
         ]
-        post_responses = [_make_response(r'{"url":"http:\/\/www.ceskatelevize.cz\/ivysilani\/client-playlist\/'
-                                         r'?key=df365c9c2ea8b36f76dfa29e3b16d245"}')]
+        post_responses = [_make_response(b'{"url":"http:\/\/www.ceskatelevize.cz\/ivysilani\/client-playlist\/'
+                                         b'?key=df365c9c2ea8b36f76dfa29e3b16d245"}')]
         requests_mock.get.side_effect = get_responses
         requests_mock.post.side_effect = post_responses
 
@@ -66,11 +74,15 @@ class TestPlayLive(unittest.TestCase):
 
     def test_play_live(self):
         get_responses = [
-            _make_response(open(os.path.join(os.path.dirname(__file__), "data/play_live/playlist_1.m3u")).read()),
+            _make_response(
+                open(os.path.join(os.path.dirname(__file__), "data/play_live/playlist_1.m3u"), mode='rb').read(),
+            ),
             Mock(content=sentinel.data_1),
             Mock(content=sentinel.data_2),
             Mock(content=sentinel.data_3),
-            _make_response(open(os.path.join(os.path.dirname(__file__), "data/play_live/playlist_2.m3u")).read()),
+            _make_response(
+                open(os.path.join(os.path.dirname(__file__), "data/play_live/playlist_2.m3u"), mode='rb').read(),
+            ),
             Mock(content=sentinel.data_4),
         ]
         self.requests_mock.get.side_effect = get_responses

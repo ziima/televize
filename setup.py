@@ -1,14 +1,13 @@
 # -*- coding: utf-8 -*-
 from setuptools import setup
 
-import televize
 
 REQUIREMENTS = open('requirements.txt').read().split()
 
 
 def main():
     setup(name='televize',
-          version=televize.__version__,
+          version='0.1a',
           author='Vlastimil Zíma',
           author_email='vlastimil.zima@gmail.com',
           description='Script to play Czech Television (Česká televize) streams in custom player.',

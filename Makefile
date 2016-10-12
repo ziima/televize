@@ -1,12 +1,12 @@
 .PHONY: test coverage isort check-isort check-flake8
 
 test:
-	python tests/__init__.py discover
+	python -m unittest discover
 
 coverage:
 	python-coverage erase
 	-rm -r htmlcov
-	python-coverage run --branch --source="." tests/__init__.py discover
+	python-coverage run --branch --source="." -m unittest discover
 	python-coverage html -d htmlcov
 
 isort:
