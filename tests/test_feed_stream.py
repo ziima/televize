@@ -3,7 +3,7 @@ import unittest
 
 import m3u8
 
-from televize import LiveStream, _fix_extinf, feed_stream
+from televize import LiveStream, feed_stream
 
 try:
     from unittest.mock import Mock, call, patch, sentinel  # Python3
@@ -26,7 +26,7 @@ class TestFeedStream(unittest.TestCase):
     def test_feed(self):
         stream = LiveStream()
         data = open(os.path.join(os.path.dirname(__file__), 'data', 'playlist.m3u8')).read()
-        stream.update(m3u8.loads(_fix_extinf(data)))
+        stream.update(m3u8.loads(data))
         self.requests_mock.get.side_effect = [Mock(content=sentinel.data_1), Mock(content=sentinel.data_2),
                                               Mock(content=sentinel.data_3)]
         mplayer_mock = Mock()

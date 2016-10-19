@@ -6,14 +6,14 @@ import unittest
 
 import m3u8
 
-from televize import LiveStream, _fix_extinf
+from televize import LiveStream
 
 
 class TestLiveStream(unittest.TestCase):
     """Tests of `LiveStream` object"""
     def get_playlist(self, filename):
         data = open(os.path.join(os.path.dirname(__file__), 'data', filename)).read()
-        return m3u8.loads(_fix_extinf(data))
+        return m3u8.loads(data)
 
     def test_bool(self):
         self.assertFalse(LiveStream())

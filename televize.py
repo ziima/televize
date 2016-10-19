@@ -140,19 +140,6 @@ def feed_stream(stream, base_url, player):
         player.stdin.write(chunk.content)
 
 
-def _fix_extinf(content):
-    """
-    Append the comma at the end of EXTINF tag if its missing.
-    """
-    output = []
-    for line in content.split('\n'):
-        if line.startswith(m3u8.protocol.extinf) and not line.endswith(','):
-            output.append(line + ',')
-        else:
-            output.append(line)
-    return '\n'.join(output)
-
-
 def get_playlist(channel, _client=requests):
     """
     Extract the playlist for CT channel.
@@ -212,7 +199,7 @@ def play_live(playlist, player_cmd, _sleep=time.sleep):
     stream = LiveStream()
     response = requests.get(playlist.uri)
     logging.debug("Stream playlist: %s", response.text)
-    stream.update(m3u8.loads(_fix_extinf(response.text)))
+    stream.update(m3u8.loads(response.text))
 
     cmd = shlex.split(player_cmd)
     logging.debug("Player cmd: %s", cmd)
@@ -228,7 +215,7 @@ def play_live(playlist, player_cmd, _sleep=time.sleep):
         # Get new part of the stream
         response = requests.get(playlist.uri)
         logging.debug("Stream playlist: %s", response.text)
-        stream.update(m3u8.loads(_fix_extinf(response.text)))
+        stream.update(m3u8.loads(response.text))
 
     feed_stream(stream, playlist.uri, player)
 
