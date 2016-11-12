@@ -21,8 +21,12 @@ def _make_response(content):
 
 class TestGetPlaylist(unittest.TestCase):
     """Test `get_playlist` function"""
+    def setUp(self):
+        patcher = patch('televize.requests')
+        self.addCleanup(patcher.stop)
+        self.requests_mock = patcher.start()
+
     def test_get_playlist(self):
-        requests_mock = Mock()
         get_responses = [
             _make_response(
                 open(os.path.join(os.path.dirname(__file__), "data/play_live/client_playlist.json"), mode='rb').read(),
@@ -33,10 +37,10 @@ class TestGetPlaylist(unittest.TestCase):
         ]
         post_responses = [_make_response(b'{"url":"http:\/\/www.ceskatelevize.cz\/ivysilani\/client-playlist\/'
                                          b'?key=df365c9c2ea8b36f76dfa29e3b16d245"}')]
-        requests_mock.get.side_effect = get_responses
-        requests_mock.post.side_effect = post_responses
+        self.requests_mock.get.side_effect = get_responses
+        self.requests_mock.post.side_effect = post_responses
 
-        playlist = get_playlist('24', _client=requests_mock)
+        playlist = get_playlist('24')
 
         self.assertIsInstance(playlist, Playlist)
         playlist_uri = 'http://80.188.78.151:80/atip/fd2eccaa99022586e14694df91068915/1449324471384/' \
@@ -54,7 +58,7 @@ class TestGetPlaylist(unittest.TestCase):
                      '=live&expiry=1449327687&id=2402&playerType=flash&quality=web&region=1&skipIpAddressCheck=false'
                      '&userId=823c8699-a1d0-41e2-aabc-1101c128cdab'),
         ]
-        self.assertEqual(requests_mock.mock_calls, calls)
+        self.assertEqual(self.requests_mock.mock_calls, calls)
 
 
 class TestPlayLive(unittest.TestCase):

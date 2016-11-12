@@ -134,12 +134,11 @@ def feed_stream(stream, base_url, player):
         player.stdin.write(chunk.content)
 
 
-def get_playlist(channel, _client=requests):
+def get_playlist(channel):
     """
     Extract the playlist for CT channel.
 
     @param channel: Name of the channel
-    @param _client: HTTP client. Used by tests
     """
     # TODO: We shold parse the `content` from the flash player to find playlist data from `getPlaylistUrl` calls.
     # from lxml import etree
@@ -163,16 +162,16 @@ def get_playlist(channel, _client=requests):
         'addCommercials': 0,
         'type': "html"
     }
-    response = _client.post(PLAYLIST_LINK, post_data, headers={'x-addr': '127.0.0.1'})
+    response = requests.post(PLAYLIST_LINK, post_data, headers={'x-addr': '127.0.0.1'})
     client_playlist = response.json()
 
     # Get the custom playlist URL to get playlist JSON meta data (including playlist URL)
-    response = _client.get(urljoin(PLAYLIST_LINK, client_playlist["url"]))
+    response = requests.get(urljoin(PLAYLIST_LINK, client_playlist["url"]))
     playlist_metadata = response.json()
     stream_playlist_url = playlist_metadata['playlist'][0]['streamUrls']['main']
 
     # Use playlist URL to get the M3U playlist with streams
-    response = _client.get(urljoin(PLAYLIST_LINK, stream_playlist_url))
+    response = requests.get(urljoin(PLAYLIST_LINK, stream_playlist_url))
     logging.debug("Variant playlist: %s", response.text)
     variant_playlist = m3u8.loads(response.text)
     # Use the first stream found
