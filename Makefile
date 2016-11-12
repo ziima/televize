@@ -1,13 +1,13 @@
 .PHONY: test coverage isort check-isort check-flake8
 
 test:
-	python -m unittest discover
+	python3 -m unittest discover
 
 coverage:
-	python-coverage erase
+	python3-coverage erase
 	-rm -r htmlcov
-	python-coverage run --branch --source="." -m unittest discover
-	python-coverage html -d htmlcov
+	python3-coverage run --branch --source="." -m unittest discover
+	python3-coverage html -d htmlcov
 
 isort:
 	isort --recursive televize.py tests
