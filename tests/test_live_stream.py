@@ -8,11 +8,13 @@ import m3u8
 
 from televize import LiveStream
 
+from .utils import get_path
+
 
 class TestLiveStream(unittest.TestCase):
     """Tests of `LiveStream` object"""
     def get_playlist(self, filename):
-        data = open(os.path.join(os.path.dirname(__file__), 'data', filename)).read()
+        data = open(get_path(__file__, os.path.join('data', filename))).read()
         return m3u8.loads(data)
 
     def test_bool(self):

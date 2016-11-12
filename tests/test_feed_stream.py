@@ -1,10 +1,11 @@
-import os
 import unittest
 from unittest.mock import Mock, call, patch, sentinel
 
 import m3u8
 
 from televize import LiveStream, feed_stream
+
+from .utils import get_path
 
 
 class TestFeedStream(unittest.TestCase):
@@ -21,7 +22,7 @@ class TestFeedStream(unittest.TestCase):
 
     def test_feed(self):
         stream = LiveStream()
-        data = open(os.path.join(os.path.dirname(__file__), 'data', 'playlist.m3u8')).read()
+        data = open(get_path(__file__, 'data/playlist.m3u8')).read()
         stream.update(m3u8.loads(data))
         self.requests_mock.get.side_effect = [Mock(content=sentinel.data_1), Mock(content=sentinel.data_2),
                                               Mock(content=sentinel.data_3)]
