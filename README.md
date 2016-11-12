@@ -12,18 +12,14 @@ python setup.py install
 
 ### Dependencies ###
  * python 3.4 or 3.5
- * requests
- * m3u8
- * Any player which can play stream from stdin. mplayer is used by default.
+ * Any player which can play stream from stdin. mpv is used by default.
 
 ### Usage ###
 ```sh
-./televize 1  # CT1
-./televize 2  # CT2
-./televize 24  # CT24
-./televize sport  # CT-sport
-./televize D  # CT-D
-./televize art  # CT-art
+televize live 24  # CT24
+televize live D  # CT:D
+televize live sport  # CT-sport
+televize ivysilani http://www.ceskatelevize.cz/ivysilani/11276561613-kosmo/
 ```
 
 Based on Perl scripts `televize` and `ctstream` from Petr Písař (http://xpisar.wz.cz).

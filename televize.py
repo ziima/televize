@@ -2,11 +2,16 @@
 """
 Plays Czech television stream in custom player
 
-Usage: televize.py [options] <channel>
+Usage: televize.py [options] live <channel>
+       televize.py [options] ivysilani <url>
        televize.py -h | --help
        televize.py --version
 
-Channels:
+Subcommands:
+  live                 play live channel
+  ivysilani            play video from ivysilani archive
+
+Live channels:
   1                    CT1
   2                    CT2
   24                   CT24
@@ -231,8 +236,8 @@ def play_live(playlist, player_cmd, _sleep=time.sleep):
 
 def main():
     options = docopt(__doc__, version=__version__)
-    if options['<channel>'] not in CHANNEL_NAMES:
-        exit("Unknown channel")
+
+    # Set up logging
     if options['--debug']:
         level = logging.DEBUG
     else:
@@ -240,7 +245,12 @@ def main():
     logging.basicConfig(stream=sys.stderr, level=level, format='%(asctime)s %(levelname)s:%(funcName)s:%(message)s')
     logging.getLogger('iso8601').setLevel(logging.WARN)
 
-    playlist = get_playlist(options['<channel>'])
+    if options['live']:
+        if options['<channel>'] not in CHANNEL_NAMES:
+            exit("Unknown live channel")
+        playlist = get_live_playlist(options['<channel>'])
+    elif options['ivysilani']:
+        playlist = get_ivysilani_playlist(options['<url>'])
     play_live(playlist, options['--player'])
 
 
