@@ -31,7 +31,7 @@ from urllib.parse import urljoin
 import m3u8
 import requests
 from docopt import docopt
-
+from lxml import etree
 
 __version__ = '0.1a1'
 
@@ -45,6 +45,8 @@ CHANNEL_NAMES = OrderedDict((
     ('D', 5),
     ('art', 6),
 ))
+PLAYLIST_TYPE_CHANNEL = 'channel'
+PLAYLIST_TYPE_EPISODE = 'episode'
 
 
 ################################################################################
@@ -116,48 +118,21 @@ class LiveStream(object):
 
 
 ################################################################################
-def feed_stream(stream, base_url, player):
+# Playlist functions
+
+def get_playlist(playlist_id, playlist_type):
     """
-    Feed segments from stream to the player.
+    Extract the playlist for CT video.
 
-    @param stream: Stream to be played
-    @type stream: `LiveStream`
-    @param base_url: Base URL for segment URIs
-    @param player: Process with player
-    @type player: `subprocess.Popen`
+    @param playlist_id: ID of playlist
+    @param playlist_type: Type of playlist
     """
-    while stream:
-        segment = stream.pop()
-        url = urljoin(base_url, segment.uri)
-        logging.debug("URL: %s", url)
-        chunk = requests.get(url)
-        player.stdin.write(chunk.content)
-
-
-def get_playlist(channel):
-    """
-    Extract the playlist for CT channel.
-
-    @param channel: Name of the channel
-    """
-    # TODO: We shold parse the `content` from the flash player to find playlist data from `getPlaylistUrl` calls.
-    # from lxml import etree
-    #
-    # response = urllib2.urlopen(LINK_CT24)
-    #
-    # parser = etree.HTMLParser()
-    # tree = etree.parse(response, parser)
-    # player_src = tree.xpath('//div[@id="programmePlayer"]//iframe/@src')
-    # player_src = player_src[0]
-    #
-    # response = urllib2.urlopen(urljoin(LINK_CT24, player_src))
-    # content = response.read()
-
+    assert playlist_type in (PLAYLIST_TYPE_CHANNEL, PLAYLIST_TYPE_EPISODE)
     # First get the custom client playlist URL
     post_data = {
-        'playlist[0][id]': CHANNEL_NAMES[channel],
-        'playlist[0][type]': "channel",
-        'requestUrl': '/ivysilani/embed/iFramePlayerCT24.php',
+        'playlist[0][id]': playlist_id,
+        'playlist[0][type]': playlist_type,
+        'requestUrl': '/ivysilani/',
         'requestSource': "iVysilani",
         'addCommercials': 0,
         'type': "html"
@@ -177,6 +152,47 @@ def get_playlist(channel):
     # Use the first stream found
     # TODO: Select variant based on requested quality
     return variant_playlist.playlists[0]
+
+
+def get_ivysilani_playlist(url):
+    """
+    Extract the playlist for ivysilani page.
+
+    @param url: URL of the web page
+    """
+    response = requests.get(url)
+    page = etree.HTML(response.text)
+    play_button = page.find('.//a[@class="programmeToPlaylist"]')
+    item = play_button.get('rel')
+    return get_playlist(item, PLAYLIST_TYPE_EPISODE)
+
+
+def get_live_playlist(channel):
+    """
+    Extract the playlist for live CT channel.
+
+    @param channel: Name of the channel
+    """
+    return get_playlist(CHANNEL_NAMES[channel], PLAYLIST_TYPE_CHANNEL)
+
+
+################################################################################
+def feed_stream(stream, base_url, player):
+    """
+    Feed segments from stream to the player.
+
+    @param stream: Stream to be played
+    @type stream: `LiveStream`
+    @param base_url: Base URL for segment URIs
+    @param player: Process with player
+    @type player: `subprocess.Popen`
+    """
+    while stream:
+        segment = stream.pop()
+        url = urljoin(base_url, segment.uri)
+        logging.debug("URL: %s", url)
+        chunk = requests.get(url)
+        player.stdin.write(chunk.content)
 
 
 def play_live(playlist, player_cmd, _sleep=time.sleep):
