@@ -1,14 +1,10 @@
 import os
 import unittest
+from unittest.mock import Mock, call, patch, sentinel
 
 import m3u8
 
 from televize import LiveStream, feed_stream
-
-try:
-    from unittest.mock import Mock, call, patch, sentinel  # Python3
-except ImportError:
-    from mock import Mock, call, patch, sentinel  # Python2
 
 
 class TestFeedStream(unittest.TestCase):

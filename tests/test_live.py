@@ -5,16 +5,12 @@ import os.path
 import unittest
 from io import BytesIO
 from subprocess import PIPE
+from unittest.mock import Mock, call, patch, sentinel
 
 from m3u8.model import Playlist
 from requests import Response
 
 from televize import get_playlist, play_live
-
-try:
-    from unittest.mock import Mock, call, patch, sentinel  # Python3
-except ImportError:
-    from mock import Mock, call, patch, sentinel  # Python2
 
 
 def _make_response(content):

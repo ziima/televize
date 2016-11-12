@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 Plays Czech television stream in custom player
 
@@ -26,17 +26,14 @@ import sys
 import time
 from collections import OrderedDict
 from subprocess import PIPE, Popen
+from urllib.parse import urljoin
 
 import m3u8
 import requests
 from docopt import docopt
 
-try:
-    from urllib.parse import urljoin  # Python3
-except ImportError:
-    from urlparse import urljoin  # Python2
 
-__version__ = '0.1a'
+__version__ = '0.1a1'
 
 
 PLAYLIST_LINK = 'http://www.ceskatelevize.cz/ivysilani/ajax/get-client-playlist'
@@ -69,10 +66,7 @@ class LiveStream(object):
         # EXT-X-MEDIA-SEQUENCE of the last item in the live stream
         self._last_media_sequence = None
 
-    def __bool__(self):  # Python3
-        return bool(self._segments)
-
-    def __nonzero__(self):  # Python2
+    def __bool__(self):
         return bool(self._segments)
 
     @property
