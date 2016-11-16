@@ -54,74 +54,6 @@ PLAYLIST_TYPE_EPISODE = 'episode'
 
 
 ################################################################################
-class LiveStream(object):
-    """
-    Handles live stream segments from playlists.
-
-    @ivar end: Whether the live stream ended.
-    """
-    # Max number of old segments
-    _history = 10
-
-    def __init__(self):
-        # Segments to be played
-        self._segments = []
-        self.end = False
-        # Segments already played
-        self._old_segments = []
-        # EXT-X-MEDIA-SEQUENCE of the last item in the live stream
-        self._last_media_sequence = None
-
-    def __bool__(self):
-        return bool(self._segments)
-
-    @property
-    def last_played(self):
-        """
-        Returns the last played segment.
-        """
-        if not self._old_segments:
-            return None
-        return self._old_segments[-1]
-
-    def pop(self):
-        """
-        Pops the first segment.
-        """
-        if not self._segments:
-            return None
-
-        seg = self._segments.pop(0)
-        self._old_segments.append(seg)
-        self._old_segments = self._old_segments[-self._history:]
-        return seg
-
-    def update(self, playlist):
-        """
-        Updates live stream with segments from playlist.
-        """
-        if self.end:
-            raise ValueError("This stream already ended.")
-
-        new_segments = playlist.segments
-
-        # Add only segments which were not part of the stream
-        if self._last_media_sequence:
-            new_segments = (s for i, s in enumerate(new_segments, start=playlist.media_sequence)
-                            if i > self._last_media_sequence)
-
-        self._segments.extend(new_segments)
-
-        # Update `_last_media_sequence` to the index of the last item in `playlist`
-        if new_segments:
-            self._last_media_sequence = playlist.media_sequence + len(playlist.segments) - 1
-
-        # Mark the stream as ended if required
-        if playlist.is_endlist:
-            self.end = True
-
-
-################################################################################
 # Playlist functions
 
 def get_playlist(playlist_id, playlist_type):
@@ -181,24 +113,6 @@ def get_live_playlist(channel):
 
 
 ################################################################################
-def feed_stream(stream, base_url, player):
-    """
-    Feed segments from stream to the player.
-
-    @param stream: Stream to be played
-    @type stream: `LiveStream`
-    @param base_url: Base URL for segment URIs
-    @param player: Process with player
-    @type player: `subprocess.Popen`
-    """
-    while stream:
-        segment = stream.pop()
-        url = urljoin(base_url, segment.uri)
-        logging.debug("URL: %s", url)
-        chunk = requests.get(url)
-        player.stdin.write(chunk.content)
-
-
 def play(playlist, player_cmd):
     """
     Play CT playlist
