@@ -12,7 +12,7 @@ python setup.py install
 
 ### Dependencies ###
  * python 3.4 or 3.5
- * Any player which can play stream from stdin. mpv is used by default.
+ * Any player which supports internet playlists. mpv is used by default.
 
 ### Usage ###
 ```sh

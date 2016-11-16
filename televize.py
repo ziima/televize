@@ -22,15 +22,14 @@ Live channels:
 Options:
   -h, --help           show this help message and exit
   --version            show program's version number and exit
-  -p, --player=PLAYER  player command [default: mpv -]
+  -p, --player=PLAYER  player command [default: mpv]
   -d, --debug          print debug messages
 """
 import logging
 import shlex
+import subprocess
 import sys
-import time
 from collections import OrderedDict
-from subprocess import PIPE, Popen
 from urllib.parse import urljoin
 
 import m3u8
@@ -200,38 +199,18 @@ def feed_stream(stream, base_url, player):
         player.stdin.write(chunk.content)
 
 
-def play_live(playlist, player_cmd, _sleep=time.sleep):
+def play(playlist, player_cmd):
     """
-    Play live CT channel
+    Play CT playlist
 
-    @param channel: Name of the channel
+    @param playlist: Playlist to be played
+    @type playlist: m3u8.model.Playlist
     @param player_cmd: Additional player arguments
     @type player_cmd: str
-    @param _sleep: Sleep function
     """
-    # Initialize the stream
-    stream = LiveStream()
-    response = requests.get(playlist.uri)
-    logging.debug("Stream playlist: %s", response.text)
-    stream.update(m3u8.loads(response.text))
-
-    cmd = shlex.split(player_cmd)
+    cmd = shlex.split(player_cmd) + [playlist.uri]
     logging.debug("Player cmd: %s", cmd)
-    player = Popen(cmd, stdin=PIPE)
-
-    # Iteratively download the stream playlists
-    while not stream.end:
-        feed_stream(stream, playlist.uri, player)
-
-        # Wait playlist duration. New media item should appear on the playlist.
-        _sleep(stream.last_played.duration)
-
-        # Get new part of the stream
-        response = requests.get(playlist.uri)
-        logging.debug("Stream playlist: %s", response.text)
-        stream.update(m3u8.loads(response.text))
-
-    feed_stream(stream, playlist.uri, player)
+    subprocess.call(cmd)
 
 
 def main():
@@ -251,7 +230,7 @@ def main():
         playlist = get_live_playlist(options['<channel>'])
     elif options['ivysilani']:
         playlist = get_ivysilani_playlist(options['<url>'])
-    play_live(playlist, options['--player'])
+    play(playlist, options['--player'])
 
 
 if __name__ == '__main__':
