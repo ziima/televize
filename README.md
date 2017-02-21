@@ -13,6 +13,7 @@ python setup.py install
 ### Dependencies ###
  * python 3.4 or 3.5
  * Any player which supports internet playlists. mpv is used by default.
+ * Other dependencies are listed in [requirements.txt](requirements.txt).
 
 ### Usage ###
 ```sh
