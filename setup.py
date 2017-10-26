@@ -31,7 +31,7 @@ def main():
           description='Script to play Czech Television (Česká televize) streams in custom player.',
           long_description=LONG_DESCRIPTION,
           url='https://github.com/ziima/televize',
-          licence='GPLv2+',
+          license='GPLv2+',
           py_modules=['televize'],
           python_requires='>=3.4',
           install_requires=REQUIREMENTS,
