@@ -1,2 +1,4 @@
 *.pyc
 /htmlcov
+/dist
+*.egg-info
