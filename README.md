@@ -23,4 +23,13 @@ televize live sport  # CT-sport
 televize ivysilani http://www.ceskatelevize.cz/ivysilani/11276561613-kosmo/
 ```
 
+#### macOS ####
+
+To open stream in a native player on macOS (e.g. VLC), use `--player` command `open -a APP --args`.
+For example:
+
+```sh
+televize --player "open -a VLC --args" live 24
+```
+
 Based on Perl scripts `televize` and `ctstream` from Petr Písař (http://xpisar.wz.cz).
