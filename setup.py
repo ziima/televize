@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 from setuptools import setup
 
-
+VERSION = '0.1'
 REQUIREMENTS = open('requirements.txt').read().split()
 LONG_DESCRIPTION = open('README.md').read()
 CLASSIFIERS = [
-    'Development Status :: 3 - Alpha',
+    'Development Status :: 5 - Production/Stable',
     'Intended Audience :: End Users/Desktop',
     'License :: OSI Approved :: GNU General Public License v2 or later (GPLv2+)',
     'Natural Language :: English',
@@ -25,7 +25,7 @@ CLASSIFIERS = [
 
 def main():
     setup(name='televize',
-          version='0.1a1',
+          version=VERSION,
           author='Vlastimil Zíma',
           author_email='vlastimil.zima@gmail.com',
           description='Script to play Czech Television (Česká televize) streams in custom player.',
