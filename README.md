@@ -2,6 +2,11 @@
 Script to play Czech Television (Česká televize) streams in custom player.
 
 ### Installation ###
+Directly from pip (preferred)
+```sh
+pip install televize
+```
+or
 ```sh
 pip install https://github.com/ziima/televize/archive/master.zip
 ```

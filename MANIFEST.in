@@ -1,0 +1,4 @@
+include README.md LICENSE requirements*
+# Add tests
+recursive-include tests *.py
+recursive-include tests/data *
