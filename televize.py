@@ -22,6 +22,7 @@ Live channels:
 Options:
   -h, --help           show this help message and exit
   --version            show program's version number and exit
+  -q, --quality=QUAL   select stream quality [default: min]. Possible values are integers, 'min' and 'max'.
   -p, --player=PLAYER  player command [default: mpv]
   -d, --debug          print debug messages
 """
@@ -55,13 +56,29 @@ PLAYLIST_TYPE_EPISODE = 'episode'
 
 ################################################################################
 # Playlist functions
+def parse_quality(value: str) -> int:
+    """Return quality selector parsed from user input value.
 
-def get_playlist(playlist_id, playlist_type):
+    @raises ValueError: If value is not a valid quality selector.
+    """
+    # Special keywords
+    if value == 'min':
+        return 0
+    elif value == 'max':
+        return -1
+    try:
+        return int(value)
+    except ValueError:
+        raise ValueError("Quality '{}' is not a valid value.".format(value))
+
+
+def get_playlist(playlist_id, playlist_type, quality: int):
     """
     Extract the playlist for CT video.
 
     @param playlist_id: ID of playlist
     @param playlist_type: Type of playlist
+    @param quality: Quality selector
     """
     assert playlist_type in (PLAYLIST_TYPE_CHANNEL, PLAYLIST_TYPE_EPISODE)
     # First get the custom client playlist URL
@@ -85,31 +102,37 @@ def get_playlist(playlist_id, playlist_type):
     response = requests.get(urljoin(PLAYLIST_LINK, stream_playlist_url))
     logging.debug("Variant playlist: %s", response.text)
     variant_playlist = m3u8.loads(response.text)
-    # Use the first stream found
-    # TODO: Select variant based on requested quality
-    return variant_playlist.playlists[0]
+
+    # Select stream based on quality
+    playlists = sorted(variant_playlist.playlists, key=lambda p: p.stream_info.bandwidth)
+    try:
+        return playlists[quality]
+    except IndexError:
+        raise ValueError("Requested quality {} is not available.".format(quality))
 
 
-def get_ivysilani_playlist(url):
+def get_ivysilani_playlist(url, quality: int):
     """
     Extract the playlist for ivysilani page.
 
     @param url: URL of the web page
+    @param quality: Quality selector
     """
     response = requests.get(url)
     page = etree.HTML(response.text)
     play_button = page.find('.//a[@class="programmeToPlaylist"]')
     item = play_button.get('rel')
-    return get_playlist(item, PLAYLIST_TYPE_EPISODE)
+    return get_playlist(item, PLAYLIST_TYPE_EPISODE, quality)
 
 
-def get_live_playlist(channel):
+def get_live_playlist(channel, quality: int):
     """
     Extract the playlist for live CT channel.
 
     @param channel: Name of the channel
+    @param quality: Quality selector
     """
-    return get_playlist(CHANNEL_NAMES[channel], PLAYLIST_TYPE_CHANNEL)
+    return get_playlist(CHANNEL_NAMES[channel], PLAYLIST_TYPE_CHANNEL, quality)
 
 
 ################################################################################
@@ -129,13 +152,14 @@ def play(options):
 
     @raises ValueError: In case of an invalid options.
     """
+    quality = parse_quality(options['--quality'])
     if options['live']:
         if options['<channel>'] not in CHANNEL_NAMES:
             raise ValueError("Unknown live channel '{}'".format(options['<channel>']))
-        playlist = get_live_playlist(options['<channel>'])
+        playlist = get_live_playlist(options['<channel>'], quality)
     else:
         assert options['ivysilani']
-        playlist = get_ivysilani_playlist(options['<url>'])
+        playlist = get_ivysilani_playlist(options['<url>'], quality)
     run_player(playlist, options['--player'])
 
 

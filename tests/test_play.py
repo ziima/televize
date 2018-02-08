@@ -37,7 +37,7 @@ class TestPlay(unittest.TestCase):
         self.call_mock = call_patcher.start()
 
     def test_play_live(self):
-        options = {'live': True, '<channel>': '24', '--player': 'mpv'}
+        options = {'live': True, '<channel>': '24', '--player': 'mpv', '--quality': 'min'}
         playlist_url = 'http://www.ceskatelevize.cz/ivysilani/client-playlist/?key=df365c9c2ea8b36f76dfa29e3b16d245'
 
         with responses.RequestsMock() as rsps:
@@ -54,14 +54,14 @@ class TestPlay(unittest.TestCase):
         self.assertEqual(self.call_mock.mock_calls, [call(['mpv', stream_url])])
 
     def test_play_live_unknown(self):
-        options = {'live': True, '<channel>': 'unknown'}
+        options = {'live': True, '<channel>': 'unknown', '--quality': 'min'}
 
         with self.assertRaisesRegexp(ValueError, "^Unknown live channel 'unknown'$"):
             play(options)
 
     def test_play_ivysilani(self):
         options = {'live': False, 'ivysilani': True, '<url>': 'http://www.ceskatelevize.cz/ivysilani/kosmo.html',
-                   '--player': 'mpv'}
+                   '--player': 'mpv', '--quality': 'min'}
         playlist_url = 'http://www.ceskatelevize.cz/ivysilani/client-playlist/?key=df365c9c2ea8b36f76dfa29e3b16d245'
 
         with responses.RequestsMock() as rsps:
