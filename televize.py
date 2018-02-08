@@ -113,14 +113,11 @@ def get_live_playlist(channel):
 
 
 ################################################################################
-def play(playlist, player_cmd):
-    """
-    Play CT playlist
+def run_player(playlist: m3u8.model.Playlist, player_cmd: str):
+    """Run the video player
 
     @param playlist: Playlist to be played
-    @type playlist: m3u8.model.Playlist
     @param player_cmd: Additional player arguments
-    @type player_cmd: str
     """
     cmd = shlex.split(player_cmd) + [playlist.uri]
     logging.debug("Player cmd: %s", cmd)
@@ -144,7 +141,7 @@ def main():
         playlist = get_live_playlist(options['<channel>'])
     elif options['ivysilani']:
         playlist = get_ivysilani_playlist(options['<url>'])
-    play(playlist, options['--player'])
+    run_player(playlist, options['--player'])
 
 
 if __name__ == '__main__':
