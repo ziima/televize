@@ -113,21 +113,34 @@ def get_live_playlist(channel):
 
 
 ################################################################################
-def play(playlist, player_cmd):
-    """
-    Play CT playlist
+def run_player(playlist: m3u8.model.Playlist, player_cmd: str):
+    """Run the video player
 
     @param playlist: Playlist to be played
-    @type playlist: m3u8.model.Playlist
     @param player_cmd: Additional player arguments
-    @type player_cmd: str
     """
     cmd = shlex.split(player_cmd) + [playlist.uri]
     logging.debug("Player cmd: %s", cmd)
     subprocess.call(cmd)
 
 
+def play(options):
+    """Play televize.
+
+    @raises ValueError: In case of an invalid options.
+    """
+    if options['live']:
+        if options['<channel>'] not in CHANNEL_NAMES:
+            raise ValueError("Unknown live channel '{}'".format(options['<channel>']))
+        playlist = get_live_playlist(options['<channel>'])
+    else:
+        assert options['ivysilani']
+        playlist = get_ivysilani_playlist(options['<url>'])
+    run_player(playlist, options['--player'])
+
+
 def main():
+    """Main script."""
     options = docopt(__doc__, version=__version__)
 
     # Set up logging
@@ -135,16 +148,20 @@ def main():
         level = logging.DEBUG
     else:
         level = logging.WARNING
-    logging.basicConfig(stream=sys.stderr, level=level, format='%(asctime)s %(levelname)s:%(funcName)s:%(message)s')
+    logging.basicConfig(stream=sys.stderr, level=level, format='%(asctime)s %(levelname)s:%(funcName)s: %(message)s')
     logging.getLogger('iso8601').setLevel(logging.WARN)
 
-    if options['live']:
-        if options['<channel>'] not in CHANNEL_NAMES:
-            exit("Unknown live channel")
-        playlist = get_live_playlist(options['<channel>'])
-    elif options['ivysilani']:
-        playlist = get_ivysilani_playlist(options['<url>'])
-    play(playlist, options['--player'])
+    try:
+        play(options)
+    except Exception as error:
+        if level == logging.DEBUG:
+            logging.exception("An error occured:")
+        else:
+            logging.warn("An error occured: %s", error)
+        exit(1)
+    except KeyboardInterrupt:
+        # User killed the program, silence the exception
+        exit(0)
 
 
 if __name__ == '__main__':
