@@ -101,14 +101,17 @@ def get_playlist(playlist_id, playlist_type, quality: int):
     # Use playlist URL to get the M3U playlist with streams
     response = requests.get(urljoin(PLAYLIST_LINK, stream_playlist_url))
     logging.debug("Variant playlist: %s", response.text)
+    playlist_base_url = response.url
     variant_playlist = m3u8.loads(response.text)
 
     # Select stream based on quality
     playlists = sorted(variant_playlist.playlists, key=lambda p: p.stream_info.bandwidth)
     try:
-        return playlists[quality]
+        playlist = playlists[quality]
     except IndexError:
         raise ValueError("Requested quality {} is not available.".format(quality))
+    playlist.base_uri = playlist_base_url
+    return playlist
 
 
 def get_ivysilani_playlist(url, quality: int):
@@ -142,7 +145,7 @@ def run_player(playlist: m3u8.model.Playlist, player_cmd: str):
     @param playlist: Playlist to be played
     @param player_cmd: Additional player arguments
     """
-    cmd = shlex.split(player_cmd) + [playlist.uri]
+    cmd = shlex.split(player_cmd) + [playlist.absolute_uri]
     logging.debug("Player cmd: %s", cmd)
     subprocess.call(cmd)
 
