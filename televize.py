@@ -121,7 +121,11 @@ def get_ivysilani_playlist(url, quality: int):
     response = requests.get(url)
     page = etree.HTML(response.text)
     play_button = page.find('.//a[@class="programmeToPlaylist"]')
+    if not play_button:
+        raise ValueError("Can't find playlist on the ivysilani page.")
     item = play_button.get('rel')
+    if not item:
+        raise ValueError("Can't find playlist on the ivysilani page.")
     return get_playlist(item, PLAYLIST_TYPE_EPISODE, quality)
 
 

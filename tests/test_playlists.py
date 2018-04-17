@@ -99,6 +99,20 @@ class TestGetIvysilaniPlaylist(unittest.TestCase):
         self.assertEqual(get_ivysilani_playlist(sentinel.url, 0), sentinel.playlist)
         self.assertEqual(self.get_playlist_mock.mock_calls, [call('987650004321', PLAYLIST_TYPE_EPISODE, 0)])
 
+    def test_get_ivysilani_playlist_no_button(self):
+        get_responses = [make_response(open(get_path(__file__, 'data/ivysilani_no_button.html'), mode='rb').read())]
+        self.requests_mock.get.side_effect = get_responses
+        self.get_playlist_mock.return_value = sentinel.playlist
+        with self.assertRaisesRegex(ValueError, "Can't find playlist on the ivysilani page."):
+            get_ivysilani_playlist(sentinel.url, 0)
+
+    def test_get_ivysilani_playlist_no_rel(self):
+        get_responses = [make_response(open(get_path(__file__, 'data/ivysilani_no_rel.html'), mode='rb').read())]
+        self.requests_mock.get.side_effect = get_responses
+        self.get_playlist_mock.return_value = sentinel.playlist
+        with self.assertRaisesRegex(ValueError, "Can't find playlist on the ivysilani page."):
+            get_ivysilani_playlist(sentinel.url, 0)
+
 
 class TestGetLivePlaylist(unittest.TestCase):
     """Test `get_live_playlist` function"""
