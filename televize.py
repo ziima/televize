@@ -39,7 +39,7 @@ import requests
 from docopt import docopt
 from lxml import etree
 
-__version__ = '0.3'
+__version__ = '0.4'
 
 
 PLAYLIST_LINK = 'http://www.ceskatelevize.cz/ivysilani/ajax/get-client-playlist'
