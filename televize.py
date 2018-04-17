@@ -27,11 +27,12 @@ Options:
   -d, --debug          print debug messages
 """
 import logging
+import re
 import shlex
 import subprocess
 import sys
 from collections import OrderedDict
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlsplit
 
 import m3u8
 import requests
@@ -52,6 +53,8 @@ CHANNEL_NAMES = OrderedDict((
 ))
 PLAYLIST_TYPE_CHANNEL = 'channel'
 PLAYLIST_TYPE_EPISODE = 'episode'
+
+PORADY_PATH_PATTERN = re.compile('^/porady/[^/]+/(?P<playlist_id>\d+)(-[^/]*)?/?$')
 
 
 ################################################################################
@@ -118,6 +121,14 @@ def get_ivysilani_playlist(url, quality: int):
     @param url: URL of the web page
     @param quality: Quality selector
     """
+    # Porady pages have playlist ID in URL
+    split = urlsplit(url)
+    match = PORADY_PATH_PATTERN.match(split.path)
+    if match:
+        playlist_id = match.group('playlist_id')
+        return get_playlist(playlist_id, PLAYLIST_TYPE_EPISODE, quality)
+
+    # Try ivysilani URL
     response = requests.get(url)
     page = etree.HTML(response.text)
     play_button = page.find('.//a[@class="programmeToPlaylist"]')
