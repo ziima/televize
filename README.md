@@ -26,6 +26,7 @@ televize live 24  # CT24
 televize live D  # CT:D
 televize live sport  # CT-sport
 televize ivysilani http://www.ceskatelevize.cz/ivysilani/11276561613-kosmo/
+televize ivysilani http://www.ceskatelevize.cz/porady/11276561613-kosmo/215512121020005-triumf
 ```
 
 #### macOS ####
