@@ -42,7 +42,7 @@ from lxml import etree
 __version__ = '0.4'
 
 
-PLAYLIST_LINK = 'http://www.ceskatelevize.cz/ivysilani/ajax/get-client-playlist'
+PLAYLIST_LINK = 'https://www.ceskatelevize.cz/ivysilani/ajax/get-client-playlist/'
 CHANNEL_NAMES = OrderedDict((
     ('1', 1),
     ('2', 2),
@@ -94,15 +94,18 @@ def get_playlist(playlist_id, playlist_type, quality: int):
         'type': "html"
     }
     response = requests.post(PLAYLIST_LINK, post_data, headers={'x-addr': '127.0.0.1'})
+    logging.debug("Client playlist: %s", response.text)
     client_playlist = response.json()
 
     # Get the custom playlist URL to get playlist JSON meta data (including playlist URL)
     response = requests.get(urljoin(PLAYLIST_LINK, client_playlist["url"]))
+    logging.debug("Playlist URL: %s", response.text)
     playlist_metadata = response.json()
     stream_playlist_url = playlist_metadata['playlist'][0]['streamUrls']['main']
 
     # Use playlist URL to get the M3U playlist with streams
-    response = requests.get(urljoin(PLAYLIST_LINK, stream_playlist_url))
+    # XXX: Some of the servers have probably incorrectly configured certificates. Ignore it.
+    response = requests.get(urljoin(PLAYLIST_LINK, stream_playlist_url), verify=False)
     logging.debug("Variant playlist: %s", response.text)
     playlist_base_url = response.url
     variant_playlist = m3u8.loads(response.text)
@@ -135,7 +138,7 @@ def get_ivysilani_playlist(url, quality: int):
     response = requests.get(url)
     page = etree.HTML(response.text)
     play_button = page.find('.//a[@class="programmeToPlaylist"]')
-    if not play_button:
+    if play_button is None:
         raise ValueError("Can't find playlist on the ivysilani page.")
     item = play_button.get('rel')
     if not item:

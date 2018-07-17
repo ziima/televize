@@ -38,11 +38,11 @@ class TestGetPlaylist(unittest.TestCase):
     """Test `get_playlist` function"""
 
     def test_get_playlist(self):
-        playlist_url = 'http://www.ceskatelevize.cz/ivysilani/client-playlist/?key=df365c9c2ea8b36f76dfa29e3b16d245'
+        playlist_url = 'https://www.ceskatelevize.cz/ivysilani/client-playlist/?key=df365c9c2ea8b36f76dfa29e3b16d245'
         with responses.RequestsMock() as rsps:
-            rsps.add(responses.POST, 'http://www.ceskatelevize.cz/ivysilani/ajax/get-client-playlist',
+            rsps.add(responses.POST, 'https://www.ceskatelevize.cz/ivysilani/ajax/get-client-playlist/',
                      json={'url': playlist_url}),
-            rsps.add(responses.GET, 'http://www.ceskatelevize.cz/ivysilani/client-playlist/',
+            rsps.add(responses.GET, 'https://www.ceskatelevize.cz/ivysilani/client-playlist/',
                      body=open(get_path(__file__, 'data/play_live/client_playlist.json')).read())
             rsps.add(responses.GET, 'http://80.188.65.18:80/cdn/uri/get/',
                      body=open(get_path(__file__, 'data/play_live/stream_playlist.m3u')).read())
@@ -56,11 +56,11 @@ class TestGetPlaylist(unittest.TestCase):
         self.assertEqual(playlist.stream_info.bandwidth, 500000)
 
     def test_get_playlist_invalid_quality(self):
-        playlist_url = 'http://www.ceskatelevize.cz/ivysilani/client-playlist/?key=df365c9c2ea8b36f76dfa29e3b16d245'
+        playlist_url = 'https://www.ceskatelevize.cz/ivysilani/client-playlist/?key=df365c9c2ea8b36f76dfa29e3b16d245'
         with responses.RequestsMock() as rsps:
-            rsps.add(responses.POST, 'http://www.ceskatelevize.cz/ivysilani/ajax/get-client-playlist',
+            rsps.add(responses.POST, 'https://www.ceskatelevize.cz/ivysilani/ajax/get-client-playlist/',
                      json={'url': playlist_url}),
-            rsps.add(responses.GET, 'http://www.ceskatelevize.cz/ivysilani/client-playlist/',
+            rsps.add(responses.GET, 'https://www.ceskatelevize.cz/ivysilani/client-playlist/',
                      body=open(get_path(__file__, 'data/play_live/client_playlist.json')).read())
             rsps.add(responses.GET, 'http://80.188.65.18:80/cdn/uri/get/',
                      body=open(get_path(__file__, 'data/play_live/stream_playlist.m3u')).read())
@@ -80,10 +80,10 @@ class TestGetIvysilaniPlaylist(unittest.TestCase):
         self.get_playlist_mock.return_value = sentinel.playlist
 
         with responses.RequestsMock() as rsps:
-            rsps.add(responses.GET, 'http://www.ceskatelevize.cz/ivysilani/11276561613-kosmo/',
+            rsps.add(responses.GET, 'https://www.ceskatelevize.cz/ivysilani/11276561613-kosmo/',
                      body=open(get_path(__file__, 'data/ivysilani.html'), mode='rb').read()),
 
-            self.assertEqual(get_ivysilani_playlist('http://www.ceskatelevize.cz/ivysilani/11276561613-kosmo/', 0),
+            self.assertEqual(get_ivysilani_playlist('https://www.ceskatelevize.cz/ivysilani/11276561613-kosmo/', 0),
                              sentinel.playlist)
 
         self.assertEqual(self.get_playlist_mock.mock_calls, [call('987650004321', PLAYLIST_TYPE_EPISODE, 0)])
@@ -92,26 +92,26 @@ class TestGetIvysilaniPlaylist(unittest.TestCase):
         self.get_playlist_mock.return_value = sentinel.playlist
 
         with responses.RequestsMock() as rsps:
-            rsps.add(responses.GET, 'http://www.ceskatelevize.cz/ivysilani/11276561613-kosmo/',
+            rsps.add(responses.GET, 'https://www.ceskatelevize.cz/ivysilani/11276561613-kosmo/',
                      body=open(get_path(__file__, 'data/ivysilani_no_button.html'), mode='rb').read()),
 
             with self.assertRaisesRegex(ValueError, "Can't find playlist on the ivysilani page."):
-                get_ivysilani_playlist('http://www.ceskatelevize.cz/ivysilani/11276561613-kosmo/', 0)
+                get_ivysilani_playlist('https://www.ceskatelevize.cz/ivysilani/11276561613-kosmo/', 0)
 
     def test_get_ivysilani_playlist_no_rel(self):
         self.get_playlist_mock.return_value = sentinel.playlist
 
         with responses.RequestsMock() as rsps:
-            rsps.add(responses.GET, 'http://www.ceskatelevize.cz/ivysilani/11276561613-kosmo/',
+            rsps.add(responses.GET, 'https://www.ceskatelevize.cz/ivysilani/11276561613-kosmo/',
                      body=open(get_path(__file__, 'data/ivysilani_no_rel.html'), mode='rb').read()),
 
             with self.assertRaisesRegex(ValueError, "Can't find playlist on the ivysilani page."):
-                get_ivysilani_playlist('http://www.ceskatelevize.cz/ivysilani/11276561613-kosmo/', 0)
+                get_ivysilani_playlist('https://www.ceskatelevize.cz/ivysilani/11276561613-kosmo/', 0)
 
     def test_get_ivysilani_playlist_porady(self):
         self.get_playlist_mock.return_value = sentinel.playlist
         self.assertEqual(
-            get_ivysilani_playlist('http://www.ceskatelevize.cz/porady/11276561613-kosmo/215512121020005-triumf', 0),
+            get_ivysilani_playlist('https://www.ceskatelevize.cz/porady/11276561613-kosmo/215512121020005-triumf', 0),
             sentinel.playlist)
         self.assertEqual(self.get_playlist_mock.mock_calls, [call('215512121020005', PLAYLIST_TYPE_EPISODE, 0)])
 

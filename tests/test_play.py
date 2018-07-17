@@ -38,12 +38,12 @@ class TestPlay(unittest.TestCase):
 
     def test_play_live(self):
         options = {'live': True, '<channel>': '24', '--player': 'mpv', '--quality': 'min'}
-        playlist_url = 'http://www.ceskatelevize.cz/ivysilani/client-playlist/?key=df365c9c2ea8b36f76dfa29e3b16d245'
+        playlist_url = 'https://www.ceskatelevize.cz/ivysilani/client-playlist/?key=df365c9c2ea8b36f76dfa29e3b16d245'
 
         with responses.RequestsMock() as rsps:
-            rsps.add(responses.POST, 'http://www.ceskatelevize.cz/ivysilani/ajax/get-client-playlist',
+            rsps.add(responses.POST, 'https://www.ceskatelevize.cz/ivysilani/ajax/get-client-playlist/',
                      json={'url': playlist_url}),
-            rsps.add(responses.GET, 'http://www.ceskatelevize.cz/ivysilani/client-playlist/',
+            rsps.add(responses.GET, 'https://www.ceskatelevize.cz/ivysilani/client-playlist/',
                      body=open(get_path(__file__, 'data/play_live/client_playlist.json')).read())
             rsps.add(responses.GET, 'http://80.188.65.18:80/cdn/uri/get/',
                      body=open(get_path(__file__, 'data/play_live/stream_playlist.m3u')).read())
@@ -60,16 +60,16 @@ class TestPlay(unittest.TestCase):
             play(options)
 
     def test_play_ivysilani(self):
-        options = {'live': False, 'ivysilani': True, '<url>': 'http://www.ceskatelevize.cz/ivysilani/kosmo.html',
+        options = {'live': False, 'ivysilani': True, '<url>': 'https://www.ceskatelevize.cz/ivysilani/kosmo.html',
                    '--player': 'mpv', '--quality': 'min'}
-        playlist_url = 'http://www.ceskatelevize.cz/ivysilani/client-playlist/?key=df365c9c2ea8b36f76dfa29e3b16d245'
+        playlist_url = 'https://www.ceskatelevize.cz/ivysilani/client-playlist/?key=df365c9c2ea8b36f76dfa29e3b16d245'
 
         with responses.RequestsMock() as rsps:
-            rsps.add(responses.GET, 'http://www.ceskatelevize.cz/ivysilani/kosmo.html',
+            rsps.add(responses.GET, 'https://www.ceskatelevize.cz/ivysilani/kosmo.html',
                      body=open(get_path(__file__, 'data/ivysilani.html'), mode='r').read())
-            rsps.add(responses.POST, 'http://www.ceskatelevize.cz/ivysilani/ajax/get-client-playlist',
+            rsps.add(responses.POST, 'https://www.ceskatelevize.cz/ivysilani/ajax/get-client-playlist/',
                      json={'url': playlist_url}),
-            rsps.add(responses.GET, 'http://www.ceskatelevize.cz/ivysilani/client-playlist/',
+            rsps.add(responses.GET, 'https://www.ceskatelevize.cz/ivysilani/client-playlist/',
                      body=open(get_path(__file__, 'data/play_live/client_playlist.json')).read())
             rsps.add(responses.GET, 'http://80.188.65.18:80/cdn/uri/get/',
                      body=open(get_path(__file__, 'data/play_live/stream_playlist.m3u')).read())
