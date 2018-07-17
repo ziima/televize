@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from setuptools import setup
 
-VERSION = '0.4'
+VERSION = '0.5'
 REQUIREMENTS = open('requirements.txt').read().split()
 LONG_DESCRIPTION = open('README.rst').read() + '\n\n' + open('Changelog.rst').read()
 CLASSIFIERS = [

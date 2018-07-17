@@ -2,6 +2,12 @@
 Changelog
 ---------
 
+0.5
+===
+
+* Fix after ceskatelevize.cz switched to HTTPS.
+* Fix PyPI description by using ReST for readme and changelog.
+
 0.4
 ===
 
