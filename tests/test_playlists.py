@@ -10,7 +10,7 @@ from m3u8.model import Playlist
 from televize import (PLAYLIST_TYPE_CHANNEL, PLAYLIST_TYPE_EPISODE, get_ivysilani_playlist, get_live_playlist,
                       get_playlist, parse_quality)
 
-from .utils import get_path
+from .utils import get_content, get_path
 
 
 class TestParseQuality(unittest.TestCase):
@@ -30,7 +30,7 @@ class TestParseQuality(unittest.TestCase):
         self.assertEqual(parse_quality('-3'), -3)
 
     def test_invalid(self):
-        with self.assertRaisesRegexp(ValueError, "^Quality 'invalid' is not a valid value.$"):
+        with self.assertRaisesRegex(ValueError, "^Quality 'invalid' is not a valid value.$"):
             parse_quality('invalid')
 
 
@@ -43,9 +43,9 @@ class TestGetPlaylist(unittest.TestCase):
             rsps.add(responses.POST, 'https://www.ceskatelevize.cz/ivysilani/ajax/get-client-playlist/',
                      json={'url': playlist_url}),
             rsps.add(responses.GET, 'https://www.ceskatelevize.cz/ivysilani/client-playlist/',
-                     body=open(get_path(__file__, 'data/play_live/client_playlist.json')).read())
+                     body=get_content(get_path(__file__, 'data/play_live/client_playlist.json')))
             rsps.add(responses.GET, 'http://80.188.65.18:80/cdn/uri/get/',
-                     body=open(get_path(__file__, 'data/play_live/stream_playlist.m3u')).read())
+                     body=get_content(get_path(__file__, 'data/play_live/stream_playlist.m3u')))
 
             playlist = get_playlist(sentinel.playlist_id, PLAYLIST_TYPE_CHANNEL, 0)
 
@@ -61,11 +61,11 @@ class TestGetPlaylist(unittest.TestCase):
             rsps.add(responses.POST, 'https://www.ceskatelevize.cz/ivysilani/ajax/get-client-playlist/',
                      json={'url': playlist_url}),
             rsps.add(responses.GET, 'https://www.ceskatelevize.cz/ivysilani/client-playlist/',
-                     body=open(get_path(__file__, 'data/play_live/client_playlist.json')).read())
+                     body=get_content(get_path(__file__, 'data/play_live/client_playlist.json')))
             rsps.add(responses.GET, 'http://80.188.65.18:80/cdn/uri/get/',
-                     body=open(get_path(__file__, 'data/play_live/stream_playlist.m3u')).read())
+                     body=get_content(get_path(__file__, 'data/play_live/stream_playlist.m3u')))
 
-            with self.assertRaisesRegexp(ValueError, "Requested quality 42 is not available."):
+            with self.assertRaisesRegex(ValueError, "Requested quality 42 is not available."):
                 get_playlist(sentinel.playlist_id, PLAYLIST_TYPE_CHANNEL, 42)
 
 
@@ -81,7 +81,7 @@ class TestGetIvysilaniPlaylist(unittest.TestCase):
 
         with responses.RequestsMock() as rsps:
             rsps.add(responses.GET, 'https://www.ceskatelevize.cz/ivysilani/11276561613-kosmo/',
-                     body=open(get_path(__file__, 'data/ivysilani.html'), mode='rb').read()),
+                     body=get_content(get_path(__file__, 'data/ivysilani.html')))
 
             self.assertEqual(get_ivysilani_playlist('https://www.ceskatelevize.cz/ivysilani/11276561613-kosmo/', 0),
                              sentinel.playlist)
@@ -93,7 +93,7 @@ class TestGetIvysilaniPlaylist(unittest.TestCase):
 
         with responses.RequestsMock() as rsps:
             rsps.add(responses.GET, 'https://www.ceskatelevize.cz/ivysilani/11276561613-kosmo/',
-                     body=open(get_path(__file__, 'data/ivysilani_no_button.html'), mode='rb').read()),
+                     body=get_content(get_path(__file__, 'data/ivysilani_no_button.html')))
 
             with self.assertRaisesRegex(ValueError, "Can't find playlist on the ivysilani page."):
                 get_ivysilani_playlist('https://www.ceskatelevize.cz/ivysilani/11276561613-kosmo/', 0)
@@ -103,7 +103,7 @@ class TestGetIvysilaniPlaylist(unittest.TestCase):
 
         with responses.RequestsMock() as rsps:
             rsps.add(responses.GET, 'https://www.ceskatelevize.cz/ivysilani/11276561613-kosmo/',
-                     body=open(get_path(__file__, 'data/ivysilani_no_rel.html'), mode='rb').read()),
+                     body=get_content(get_path(__file__, 'data/ivysilani_no_rel.html')))
 
             with self.assertRaisesRegex(ValueError, "Can't find playlist on the ivysilani page."):
                 get_ivysilani_playlist('https://www.ceskatelevize.cz/ivysilani/11276561613-kosmo/', 0)

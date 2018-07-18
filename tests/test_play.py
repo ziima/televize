@@ -9,7 +9,7 @@ from m3u8.model import Playlist
 
 from televize import play, run_player
 
-from .utils import get_path
+from .utils import get_content, get_path
 
 
 class TestRunPlayer(unittest.TestCase):
@@ -44,9 +44,9 @@ class TestPlay(unittest.TestCase):
             rsps.add(responses.POST, 'https://www.ceskatelevize.cz/ivysilani/ajax/get-client-playlist/',
                      json={'url': playlist_url}),
             rsps.add(responses.GET, 'https://www.ceskatelevize.cz/ivysilani/client-playlist/',
-                     body=open(get_path(__file__, 'data/play_live/client_playlist.json')).read())
+                     body=get_content(get_path(__file__, 'data/play_live/client_playlist.json')))
             rsps.add(responses.GET, 'http://80.188.65.18:80/cdn/uri/get/',
-                     body=open(get_path(__file__, 'data/play_live/stream_playlist.m3u')).read())
+                     body=get_content(get_path(__file__, 'data/play_live/stream_playlist.m3u')))
             play(options)
 
         stream_url = ('http://80.188.78.151:80/atip/fd2eccaa99022586e14694df91068915/1449324471384/'
@@ -56,7 +56,7 @@ class TestPlay(unittest.TestCase):
     def test_play_live_unknown(self):
         options = {'live': True, '<channel>': 'unknown', '--quality': 'min'}
 
-        with self.assertRaisesRegexp(ValueError, "^Unknown live channel 'unknown'$"):
+        with self.assertRaisesRegex(ValueError, "^Unknown live channel 'unknown'$"):
             play(options)
 
     def test_play_ivysilani(self):
@@ -66,13 +66,13 @@ class TestPlay(unittest.TestCase):
 
         with responses.RequestsMock() as rsps:
             rsps.add(responses.GET, 'https://www.ceskatelevize.cz/ivysilani/kosmo.html',
-                     body=open(get_path(__file__, 'data/ivysilani.html'), mode='r').read())
+                     body=get_content(get_path(__file__, 'data/ivysilani.html')))
             rsps.add(responses.POST, 'https://www.ceskatelevize.cz/ivysilani/ajax/get-client-playlist/',
                      json={'url': playlist_url}),
             rsps.add(responses.GET, 'https://www.ceskatelevize.cz/ivysilani/client-playlist/',
-                     body=open(get_path(__file__, 'data/play_live/client_playlist.json')).read())
+                     body=get_content(get_path(__file__, 'data/play_live/client_playlist.json')))
             rsps.add(responses.GET, 'http://80.188.65.18:80/cdn/uri/get/',
-                     body=open(get_path(__file__, 'data/play_live/stream_playlist.m3u')).read())
+                     body=get_content(get_path(__file__, 'data/play_live/stream_playlist.m3u')))
             play(options)
 
         stream_url = ('http://80.188.78.151:80/atip/fd2eccaa99022586e14694df91068915/1449324471384/'
