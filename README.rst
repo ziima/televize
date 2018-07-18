@@ -2,7 +2,7 @@
 televize
 ========
 
-Script to play `Czech Television (Česká televize) <www.ceskatelevize.cz>`_ streams in custom video player.
+Script to play `Czech Television (Česká televize) <http://www.ceskatelevize.cz/>`_ streams in custom video player.
 
 ------------
 Installation
