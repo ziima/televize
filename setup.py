@@ -3,7 +3,7 @@ from setuptools import setup
 
 VERSION = '0.4'
 REQUIREMENTS = open('requirements.txt').read().split()
-LONG_DESCRIPTION = open('README.md').read()
+LONG_DESCRIPTION = open('README.rst').read() + '\n\n' + open('Changelog.rst').read()
 CLASSIFIERS = [
     'Development Status :: 5 - Production/Stable',
     'Intended Audience :: End Users/Desktop',
