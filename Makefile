@@ -1,7 +1,7 @@
-.PHONY: test coverage isort check-isort check-flake8
+.PHONY: default coverage isort
 
-test:
-	python3 -m unittest discover
+default:
+	tox
 
 coverage:
 	python3-coverage erase
@@ -11,9 +11,3 @@ coverage:
 
 isort:
 	isort --recursive televize.py tests
-
-check-isort:
-	isort --check-only --diff --recursive televize.py tests
-
-check-flake8:
-	flake8 --format=pylint televize.py tests

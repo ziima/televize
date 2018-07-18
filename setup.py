@@ -3,6 +3,10 @@ from setuptools import setup
 
 VERSION = '0.5'
 REQUIREMENTS = open('requirements.txt').read().split()
+EXTRAS_REQUIRE = {
+    'quality': ('flake8', 'isort'),
+    'tests': ('responses', ),
+}
 LONG_DESCRIPTION = open('README.rst').read() + '\n\n' + open('Changelog.rst').read()
 CLASSIFIERS = [
     'Development Status :: 5 - Production/Stable',
@@ -35,6 +39,7 @@ def main():
           py_modules=['televize'],
           python_requires='>=3.4',
           install_requires=REQUIREMENTS,
+          extras_require=EXTRAS_REQUIRE,
           classifiers=CLASSIFIERS,
           entry_points={'console_scripts': ['televize = televize:main']})
 
