@@ -3,16 +3,10 @@ sudo: false
 python:
   - "3.4"
   - "3.5"
-  - "3.5-dev"
   - "3.6"
   - "3.6-dev"
   - "3.7-dev"
-  - "nightly"
 install:
-  - pip install -r requirements-dev.txt
-  - pip install .
-  - pip list
+  - pip install tox-travis
 script:
-  - make check-isort
-  - make check-flake8
-  - make test
+  - tox
