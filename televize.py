@@ -74,7 +74,7 @@ def parse_quality(value: str) -> int:
         raise ValueError("Quality '{}' is not a valid value.".format(value))
 
 
-def get_playlist(playlist_id, playlist_type, quality: int):
+def get_playlist(session: requests.Session, playlist_id, playlist_type, quality: int):
     """Extract the playlist for CT video.
 
     @param playlist_id: ID of playlist
@@ -91,18 +91,18 @@ def get_playlist(playlist_id, playlist_type, quality: int):
         'addCommercials': 0,
         'type': "html"
     }
-    response = requests.post(PLAYLIST_LINK, post_data, headers={'x-addr': '127.0.0.1'})
+    response = session.post(PLAYLIST_LINK, post_data, headers={'x-addr': '127.0.0.1'})
     logging.debug("Client playlist: %s", response.text)
     client_playlist = response.json()
 
     # Get the custom playlist URL to get playlist JSON meta data (including playlist URL)
-    response = requests.get(urljoin(PLAYLIST_LINK, client_playlist["url"]))
+    response = session.get(urljoin(PLAYLIST_LINK, client_playlist["url"]))
     logging.debug("Playlist URL: %s", response.text)
     playlist_metadata = response.json()
     stream_playlist_url = playlist_metadata['playlist'][0]['streamUrls']['main']
 
     # Use playlist URL to get the M3U playlist with streams
-    response = requests.get(urljoin(PLAYLIST_LINK, stream_playlist_url))
+    response = session.get(urljoin(PLAYLIST_LINK, stream_playlist_url))
     logging.debug("Variant playlist: %s", response.text)
     playlist_base_url = response.url
     variant_playlist = m3u8.loads(response.text)
@@ -117,7 +117,7 @@ def get_playlist(playlist_id, playlist_type, quality: int):
     return playlist
 
 
-def get_ivysilani_playlist(url, quality: int):
+def get_ivysilani_playlist(session: requests.Session, url, quality: int):
     """Extract the playlist for ivysilani page.
 
     @param url: URL of the web page
@@ -128,7 +128,7 @@ def get_ivysilani_playlist(url, quality: int):
     match = PORADY_PATH_PATTERN.match(split.path)
     if match:
         playlist_id = match.group('playlist_id')
-        return get_playlist(playlist_id, PLAYLIST_TYPE_EPISODE, quality)
+        return get_playlist(session, playlist_id, PLAYLIST_TYPE_EPISODE, quality)
 
     # Try ivysilani URL
     response = requests.get(url)
@@ -139,16 +139,16 @@ def get_ivysilani_playlist(url, quality: int):
     item = play_button.get('rel')
     if not item:
         raise ValueError("Can't find playlist on the ivysilani page.")
-    return get_playlist(item, PLAYLIST_TYPE_EPISODE, quality)
+    return get_playlist(session, item, PLAYLIST_TYPE_EPISODE, quality)
 
 
-def get_live_playlist(channel, quality: int):
+def get_live_playlist(session: requests.Session, channel, quality: int):
     """Extract the playlist for live CT channel.
 
     @param channel: Name of the channel
     @param quality: Quality selector
     """
-    return get_playlist(CHANNEL_NAMES[channel], PLAYLIST_TYPE_CHANNEL, quality)
+    return get_playlist(session, CHANNEL_NAMES[channel], PLAYLIST_TYPE_CHANNEL, quality)
 
 
 ################################################################################
@@ -168,14 +168,15 @@ def play(options):
 
     @raises ValueError: In case of an invalid options.
     """
+    session = requests.Session()
     quality = parse_quality(options['--quality'])
     if options['live']:
         if options['<channel>'] not in CHANNEL_NAMES:
             raise ValueError("Unknown live channel '{}'".format(options['<channel>']))
-        playlist = get_live_playlist(options['<channel>'], quality)
+        playlist = get_live_playlist(session, options['<channel>'], quality)
     else:
         assert options['ivysilani']  # nosec
-        playlist = get_ivysilani_playlist(options['<url>'], quality)
+        playlist = get_ivysilani_playlist(session, options['<url>'], quality)
     run_player(playlist, options['--player'])
 
 

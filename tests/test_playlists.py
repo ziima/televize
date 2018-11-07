@@ -4,6 +4,7 @@ Test playlist functions
 import unittest
 from unittest.mock import call, patch, sentinel
 
+import requests
 import responses
 from m3u8.model import Playlist
 
@@ -37,6 +38,9 @@ class TestParseQuality(unittest.TestCase):
 class TestGetPlaylist(unittest.TestCase):
     """Test `get_playlist` function"""
 
+    def setUp(self):
+        self.session = requests.Session()
+
     def test_get_playlist(self):
         playlist_url = 'https://www.ceskatelevize.cz/ivysilani/client-playlist/?key=df365c9c2ea8b36f76dfa29e3b16d245'
         with responses.RequestsMock() as rsps:
@@ -47,7 +51,7 @@ class TestGetPlaylist(unittest.TestCase):
             rsps.add(responses.GET, 'http://80.188.65.18:80/cdn/uri/get/',
                      body=get_content(get_path(__file__, 'data/play_live/stream_playlist.m3u')))
 
-            playlist = get_playlist(sentinel.playlist_id, PLAYLIST_TYPE_CHANNEL, 0)
+            playlist = get_playlist(self.session, sentinel.playlist_id, PLAYLIST_TYPE_CHANNEL, 0)
 
         self.assertIsInstance(playlist, Playlist)
         playlist_uri = 'http://80.188.78.151:80/atip/fd2eccaa99022586e14694df91068915/1449324471384/' \
@@ -66,12 +70,14 @@ class TestGetPlaylist(unittest.TestCase):
                      body=get_content(get_path(__file__, 'data/play_live/stream_playlist.m3u')))
 
             with self.assertRaisesRegex(ValueError, "Requested quality 42 is not available."):
-                get_playlist(sentinel.playlist_id, PLAYLIST_TYPE_CHANNEL, 42)
+                get_playlist(self.session, sentinel.playlist_id, PLAYLIST_TYPE_CHANNEL, 42)
 
 
 class TestGetIvysilaniPlaylist(unittest.TestCase):
     """Test `get_ivysilani_playlist` function"""
     def setUp(self):
+        self.session = requests.Session()
+
         patcher = patch('televize.get_playlist')
         self.addCleanup(patcher.stop)
         self.get_playlist_mock = patcher.start()
@@ -83,10 +89,12 @@ class TestGetIvysilaniPlaylist(unittest.TestCase):
             rsps.add(responses.GET, 'https://www.ceskatelevize.cz/ivysilani/11276561613-kosmo/',
                      body=get_content(get_path(__file__, 'data/ivysilani.html')))
 
-            self.assertEqual(get_ivysilani_playlist('https://www.ceskatelevize.cz/ivysilani/11276561613-kosmo/', 0),
-                             sentinel.playlist)
+            self.assertEqual(
+                get_ivysilani_playlist(self.session, 'https://www.ceskatelevize.cz/ivysilani/11276561613-kosmo/', 0),
+                sentinel.playlist)
 
-        self.assertEqual(self.get_playlist_mock.mock_calls, [call('987650004321', PLAYLIST_TYPE_EPISODE, 0)])
+        self.assertEqual(self.get_playlist_mock.mock_calls,
+                         [call(self.session, '987650004321', PLAYLIST_TYPE_EPISODE, 0)])
 
     def test_get_ivysilani_playlist_no_button(self):
         self.get_playlist_mock.return_value = sentinel.playlist
@@ -96,7 +104,7 @@ class TestGetIvysilaniPlaylist(unittest.TestCase):
                      body=get_content(get_path(__file__, 'data/ivysilani_no_button.html')))
 
             with self.assertRaisesRegex(ValueError, "Can't find playlist on the ivysilani page."):
-                get_ivysilani_playlist('https://www.ceskatelevize.cz/ivysilani/11276561613-kosmo/', 0)
+                get_ivysilani_playlist(self.session, 'https://www.ceskatelevize.cz/ivysilani/11276561613-kosmo/', 0)
 
     def test_get_ivysilani_playlist_no_rel(self):
         self.get_playlist_mock.return_value = sentinel.playlist
@@ -106,24 +114,29 @@ class TestGetIvysilaniPlaylist(unittest.TestCase):
                      body=get_content(get_path(__file__, 'data/ivysilani_no_rel.html')))
 
             with self.assertRaisesRegex(ValueError, "Can't find playlist on the ivysilani page."):
-                get_ivysilani_playlist('https://www.ceskatelevize.cz/ivysilani/11276561613-kosmo/', 0)
+                get_ivysilani_playlist(self.session, 'https://www.ceskatelevize.cz/ivysilani/11276561613-kosmo/', 0)
 
     def test_get_ivysilani_playlist_porady(self):
         self.get_playlist_mock.return_value = sentinel.playlist
-        self.assertEqual(
-            get_ivysilani_playlist('https://www.ceskatelevize.cz/porady/11276561613-kosmo/215512121020005-triumf', 0),
-            sentinel.playlist)
-        self.assertEqual(self.get_playlist_mock.mock_calls, [call('215512121020005', PLAYLIST_TYPE_EPISODE, 0)])
+
+        result = get_ivysilani_playlist(
+            self.session, 'https://www.ceskatelevize.cz/porady/11276561613-kosmo/215512121020005-triumf', 0)
+
+        self.assertEqual(result, sentinel.playlist)
+        self.assertEqual(self.get_playlist_mock.mock_calls,
+                         [call(self.session, '215512121020005', PLAYLIST_TYPE_EPISODE, 0)])
 
 
 class TestGetLivePlaylist(unittest.TestCase):
     """Test `get_live_playlist` function"""
     def setUp(self):
+        self.session = requests.Session()
+
         patcher = patch('televize.get_playlist')
         self.addCleanup(patcher.stop)
         self.get_playlist_mock = patcher.start()
 
     def test_get_live_playlist(self):
         self.get_playlist_mock.return_value = sentinel.playlist
-        self.assertEqual(get_live_playlist('24', 0), sentinel.playlist)
-        self.assertEqual(self.get_playlist_mock.mock_calls, [call(24, PLAYLIST_TYPE_CHANNEL, 0)])
+        self.assertEqual(get_live_playlist(self.session, '24', 0), sentinel.playlist)
+        self.assertEqual(self.get_playlist_mock.mock_calls, [call(self.session, 24, PLAYLIST_TYPE_CHANNEL, 0)])
