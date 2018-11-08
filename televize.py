@@ -54,7 +54,7 @@ CHANNEL_NAMES = OrderedDict((
 PLAYLIST_TYPE_CHANNEL = 'channel'
 PLAYLIST_TYPE_EPISODE = 'episode'
 
-PORADY_PATH_PATTERN = re.compile('^/porady/[^/]+/(?P<playlist_id>\d+)(-[^/]*)?/?$')
+PORADY_PATH_PATTERN = re.compile(r'^/porady/[^/]+/(?P<playlist_id>\d+)(-[^/]*)?/?$')
 
 
 ################################################################################
