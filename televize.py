@@ -28,6 +28,7 @@ Options:
 import logging
 import re
 import shlex
+import ssl
 import subprocess  # nosec
 import sys
 from collections import OrderedDict
@@ -37,6 +38,7 @@ import m3u8
 import requests
 from docopt import docopt
 from lxml import etree  # nosec
+from requests.adapters import HTTPAdapter
 
 __version__ = '0.5'
 
@@ -163,12 +165,32 @@ def run_player(playlist: m3u8.model.Playlist, player_cmd: str):
     subprocess.call(cmd)  # nosec
 
 
+# XXX: ceskatelevize.cz doesn't provide DH keys long enough. We provide custom adapter to ignore it.
+# See https://github.com/psf/requests/issues/4775
+class TlsAdapter(HTTPAdapter):
+    """Enable a lower security for HTTPS."""
+
+    CIPHERS = 'DEFAULT@SECLEVEL=1'
+
+    def init_poolmanager(self, *args, **kwargs):
+        """Initialize a pool manager with lower security for HTTPS."""
+        try:
+            ctx = ssl.create_default_context()
+            ctx.set_ciphers(self.CIPHERS)
+        except ssl.SSLError:
+            # Cipher is not available, use default
+            super().init_poolmanager(*args, **kwargs)
+        else:
+            super().init_poolmanager(*args, **kwargs, ssl_version=ssl.PROTOCOL_TLS, ssl_context=ctx)
+
+
 def play(options):
     """Play televize.
 
     @raises ValueError: In case of an invalid options.
     """
     session = requests.Session()
+    session.mount('https://', TlsAdapter())
     quality = parse_quality(options['--quality'])
     if options['live']:
         if options['<channel>'] not in CHANNEL_NAMES:
