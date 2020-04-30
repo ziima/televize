@@ -32,14 +32,22 @@ Usage
     televize ivysilani http://www.ceskatelevize.cz/ivysilani/11276561613-kosmo/
     televize ivysilani http://www.ceskatelevize.cz/porady/11276561613-kosmo/215512121020005-triumf
 
------
+Complete usage is printed using `--help` argument::
+
+    televize --help
+
 macOS
------
+=====
 
 To open stream in a native player on macOS (e.g. VLC), use `--player` command `open -a APP --args`.
 For example::
 
     televize --player "open -a VLC --args" live 24
+
+---------------
+Recommendations
+---------------
+A reload script https://github.com/4e6/mpv-reload is highly recommended for `mpv`.
 
 ---------------
 Acknowledgement
