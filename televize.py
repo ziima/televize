@@ -102,8 +102,7 @@ def get_playlist(playlist_id, playlist_type, quality: int):
     stream_playlist_url = playlist_metadata['playlist'][0]['streamUrls']['main']
 
     # Use playlist URL to get the M3U playlist with streams
-    # XXX: Some of the servers have probably incorrectly configured certificates. Ignore it.
-    response = requests.get(urljoin(PLAYLIST_LINK, stream_playlist_url), verify=False)  # nosec
+    response = requests.get(urljoin(PLAYLIST_LINK, stream_playlist_url))
     logging.debug("Variant playlist: %s", response.text)
     playlist_base_url = response.url
     variant_playlist = m3u8.loads(response.text)
