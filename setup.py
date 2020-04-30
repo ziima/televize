@@ -4,7 +4,7 @@ from setuptools import setup
 VERSION = '0.5'
 REQUIREMENTS = open('requirements.txt').read().split()
 EXTRAS_REQUIRE = {
-    'quality': ('flake8', 'isort'),
+    'quality': ('flake8', 'isort', 'bandit', 'mypy', 'pydocstyle'),
     'tests': ('responses', ),
 }
 LONG_DESCRIPTION = open('README.rst').read() + '\n\n' + open('Changelog.rst').read()
