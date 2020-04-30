@@ -16,7 +16,7 @@ Directly using pip::
 Dependencies
 ------------
 
-* python >=3.4
+* python >=3.5
 * Any player which supports internet playlists. ``mpv`` is used by default.
 * Other dependencies are listed in `requirements.txt <requirements.txt>`_.
 
