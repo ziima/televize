@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-Plays Czech television stream in custom player
+"""Play Czech television stream in custom player.
 
 Usage: televize.py [options] live <channel>
        televize.py [options] ivysilani <url>
@@ -29,7 +28,7 @@ Options:
 import logging
 import re
 import shlex
-import subprocess
+import subprocess  # nosec
 import sys
 from collections import OrderedDict
 from urllib.parse import urljoin, urlsplit
@@ -37,7 +36,7 @@ from urllib.parse import urljoin, urlsplit
 import m3u8
 import requests
 from docopt import docopt
-from lxml import etree
+from lxml import etree  # nosec
 
 __version__ = '0.5'
 
@@ -76,14 +75,13 @@ def parse_quality(value: str) -> int:
 
 
 def get_playlist(playlist_id, playlist_type, quality: int):
-    """
-    Extract the playlist for CT video.
+    """Extract the playlist for CT video.
 
     @param playlist_id: ID of playlist
     @param playlist_type: Type of playlist
     @param quality: Quality selector
     """
-    assert playlist_type in (PLAYLIST_TYPE_CHANNEL, PLAYLIST_TYPE_EPISODE)
+    assert playlist_type in (PLAYLIST_TYPE_CHANNEL, PLAYLIST_TYPE_EPISODE)  # nosec
     # First get the custom client playlist URL
     post_data = {
         'playlist[0][id]': playlist_id,
@@ -105,7 +103,7 @@ def get_playlist(playlist_id, playlist_type, quality: int):
 
     # Use playlist URL to get the M3U playlist with streams
     # XXX: Some of the servers have probably incorrectly configured certificates. Ignore it.
-    response = requests.get(urljoin(PLAYLIST_LINK, stream_playlist_url), verify=False)
+    response = requests.get(urljoin(PLAYLIST_LINK, stream_playlist_url), verify=False)  # nosec
     logging.debug("Variant playlist: %s", response.text)
     playlist_base_url = response.url
     variant_playlist = m3u8.loads(response.text)
@@ -121,8 +119,7 @@ def get_playlist(playlist_id, playlist_type, quality: int):
 
 
 def get_ivysilani_playlist(url, quality: int):
-    """
-    Extract the playlist for ivysilani page.
+    """Extract the playlist for ivysilani page.
 
     @param url: URL of the web page
     @param quality: Quality selector
@@ -147,8 +144,7 @@ def get_ivysilani_playlist(url, quality: int):
 
 
 def get_live_playlist(channel, quality: int):
-    """
-    Extract the playlist for live CT channel.
+    """Extract the playlist for live CT channel.
 
     @param channel: Name of the channel
     @param quality: Quality selector
@@ -158,14 +154,14 @@ def get_live_playlist(channel, quality: int):
 
 ################################################################################
 def run_player(playlist: m3u8.model.Playlist, player_cmd: str):
-    """Run the video player
+    """Run the video player.
 
     @param playlist: Playlist to be played
     @param player_cmd: Additional player arguments
     """
     cmd = shlex.split(player_cmd) + [playlist.absolute_uri]
     logging.debug("Player cmd: %s", cmd)
-    subprocess.call(cmd)
+    subprocess.call(cmd)  # nosec
 
 
 def play(options):
@@ -179,13 +175,13 @@ def play(options):
             raise ValueError("Unknown live channel '{}'".format(options['<channel>']))
         playlist = get_live_playlist(options['<channel>'], quality)
     else:
-        assert options['ivysilani']
+        assert options['ivysilani']  # nosec
         playlist = get_ivysilani_playlist(options['<url>'], quality)
     run_player(playlist, options['--player'])
 
 
 def main():
-    """Main script."""
+    """Play Czech television stream in custom player."""
     options = docopt(__doc__, version=__version__)
 
     # Set up logging
