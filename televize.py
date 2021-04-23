@@ -38,7 +38,7 @@ import requests
 from docopt import docopt
 from lxml import etree  # nosec
 
-__version__ = '0.5.0'
+__version__ = '0.6.0'
 
 
 PLAYLIST_LINK = 'https://www.ceskatelevize.cz/ivysilani/ajax/get-client-playlist/'

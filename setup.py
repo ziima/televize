@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from setuptools import setup
 
-VERSION = '0.5.0'
+VERSION = '0.6.0'
 REQUIREMENTS = open('requirements.txt').read().split()
 EXTRAS_REQUIRE = {
     'quality': ('flake8', 'isort', 'bandit', 'mypy', 'pydocstyle'),

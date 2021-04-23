@@ -2,6 +2,15 @@
 Changelog
 ---------
 
+0.6.0 (2021-04-23)
+==================
+
+* Support python 3.6-3.9.
+* Restore certificate verification.
+* Update README.
+* Update settings for tests, static checks and CI.
+* Resolve various warnings.
+
 0.5
 ===
 
