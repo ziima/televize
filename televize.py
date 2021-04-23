@@ -197,7 +197,7 @@ def main():
         if level == logging.DEBUG:
             logging.exception("An error occured:")
         else:
-            logging.warn("An error occured: %s", error)
+            logging.warning("An error occured: %s", error)
         exit(1)
     except KeyboardInterrupt:
         # User killed the program, silence the exception
