@@ -2,14 +2,110 @@
 Test live streaming
 """
 import unittest
-from unittest.mock import call, patch
+from unittest import TestCase
+from unittest.mock import call, patch, sentinel
 
 import responses
-from m3u8.model import Playlist
+from responses.matchers import query_param_matcher
+from testfixtures import OutputCapture
 
-from televize import play, run_player
+from televize import (CHANNELS_LINK, Channel, get_channels, get_ivysilani_playlist, get_live_playlist, play_ivysilani,
+                      play_live, print_channels, run_player)
 
-from .utils import get_content, get_path
+
+class GetChannelsTest(TestCase):
+    def test_empty(self):
+        with responses.RequestsMock() as rsps:
+            rsps.add(responses.GET, CHANNELS_LINK, json={'data': []}),
+
+            channels = tuple(get_channels())
+
+        self.assertEqual(channels, ())
+
+    def test_live_current(self):
+        channel_data = {
+            "__typename": "LiveBroadcast", "id": "CT-42",
+            "current": {"channelSettings": {"channelName": "ČT 42"}, "slug": "ct42", "title": "Great question"}}
+        channel = Channel(id="CT-42", name="ČT 42", slug="ct42", title="Great question")
+        with responses.RequestsMock() as rsps:
+            rsps.add(responses.GET, CHANNELS_LINK, json={'data': [channel_data]})
+
+            channels = tuple(get_channels())
+
+        self.assertEqual(channels, (channel, ))
+
+    def test_live_next(self):
+        channel_data = {
+            "__typename": "LiveBroadcast", "id": "CT-42",
+            "next": {"channelSettings": {"channelName": "ČT 42"}, "slug": "ct42", "title": "Great question"}}
+        channel = Channel(id="CT-42", name="ČT 42", slug="ct42", title="Great question")
+        with responses.RequestsMock() as rsps:
+            rsps.add(responses.GET, CHANNELS_LINK, json={'data': [channel_data]})
+
+            channels = tuple(get_channels())
+
+        self.assertEqual(channels, (channel, ))
+
+    def test_live_empty(self):
+        # Test live brodcast without current or next record.
+        channel_data = {"__typename": "LiveBroadcast", "id": "CT-42"}
+        channel = Channel(id="CT-42", name="", slug="", title=None)
+        with responses.RequestsMock() as rsps:
+            rsps.add(responses.GET, CHANNELS_LINK, json={'data': [channel_data]})
+
+            channels = tuple(get_channels())
+
+        self.assertEqual(channels, (channel, ))
+
+
+class PrintChannelsTest(TestCase):
+    def test_empty(self):
+        with OutputCapture(separate=True) as output:
+            print_channels(())
+
+        output.compare(stdout="", stderr="")
+
+    def test(self):
+        channel = Channel(id="CT-42", name="ČT 42", slug="ct42", title="Great question")
+        with OutputCapture(separate=True) as output:
+            print_channels((channel, ))
+
+        output.compare(stdout="ct42: ČT 42 - Great question", stderr="")
+
+
+class GetLivePlaylistTest(TestCase):
+    def test_channel_not_found(self):
+        with patch("televize.get_channels", autospec=True) as channels_mock:
+            channels_mock.return_value = ()
+
+            with self.assertRaisesRegex(ValueError, "Channel ct42 not found."):
+                get_live_playlist("ct42", "1080p")
+
+    def test(self):
+        channel = Channel(id="CT-42", name="ČT 42", slug="ct42", title="Great question")
+        playlist_data = {"streamUrls": {"main": "https://playlist.example.org/"}}
+        with patch("televize.get_channels", autospec=True) as channels_mock:
+            channels_mock.return_value = (channel, )
+
+            with responses.RequestsMock() as rsps:
+                query_matcher = query_param_matcher({"quality": "1080p"})
+                rsps.add(responses.GET,
+                         "https://api.ceskatelevize.cz/video/v1/playlist-live/v1/stream-data/channel/CT-42",
+                         match=[query_matcher], json=playlist_data)
+
+                self.assertEqual(get_live_playlist("ct42", "1080p"), "https://playlist.example.org/")
+
+
+class GetIvysilaniPlaylistTest(TestCase):
+    def test(self):
+        playlist_data = {"streams": [{"url": "https://playlist.example.org/"}]}
+        with responses.RequestsMock() as rsps:
+            query_matcher = query_param_matcher({"quality": "1080p"})
+            rsps.add(responses.GET,
+                     "https://api.ceskatelevize.cz/video/v1/playlist-vod/v1/stream-data/media/external/42",
+                     match=[query_matcher], json=playlist_data)
+
+            self.assertEqual(get_ivysilani_playlist("42", "1080p"), "https://playlist.example.org/")
 
 
 class TestRunPlayer(unittest.TestCase):
@@ -21,60 +117,33 @@ class TestRunPlayer(unittest.TestCase):
 
     def test_run_player_live(self):
         playlist_uri = 'http://example.cz/path/playlist.m3u8'
-        playlist = Playlist(playlist_uri, {'bandwidth': 500000}, None, None)
 
-        run_player(playlist, 'my_player "Custom Argument"')
+        run_player(playlist_uri, 'my_player "Custom Argument"')
 
         self.assertEqual(self.call_mock.mock_calls, [call(['my_player', 'Custom Argument', playlist_uri])])
 
 
-class TestPlay(unittest.TestCase):
-    """Test `play` function"""
+class PlayLiveTest(TestCase):
+    def test(self):
+        with patch("televize.get_live_playlist", autospec=True, return_value=sentinel.playlist_url) as get_mock:
+            with patch("televize.run_player", autospec=True) as run_mock:
+                play_live({"<channel>": sentinel.channel, "--player": sentinel.player, "--quality": sentinel.quality})
 
-    def setUp(self):
-        call_patcher = patch('televize.subprocess.call')
-        self.addCleanup(call_patcher.stop)
-        self.call_mock = call_patcher.start()
+        self.assertEqual(get_mock.mock_calls, [call(sentinel.channel, sentinel.quality)])
+        self.assertEqual(run_mock.mock_calls, [call(sentinel.playlist_url, sentinel.player)])
 
-    def test_play_live(self):
-        options = {'live': True, '<channel>': '24', '--player': 'mpv', '--quality': 'min'}
-        playlist_url = 'https://www.ceskatelevize.cz/ivysilani/client-playlist/?key=df365c9c2ea8b36f76dfa29e3b16d245'
 
-        with responses.RequestsMock() as rsps:
-            rsps.add(responses.POST, 'https://www.ceskatelevize.cz/ivysilani/ajax/get-client-playlist/',
-                     json={'url': playlist_url}),
-            rsps.add(responses.GET, 'https://www.ceskatelevize.cz/ivysilani/client-playlist/',
-                     body=get_content(get_path(__file__, 'data/play_live/client_playlist.json')))
-            rsps.add(responses.GET, 'http://80.188.65.18:80/cdn/uri/get/',
-                     body=get_content(get_path(__file__, 'data/play_live/stream_playlist.m3u')))
-            play(options)
+class PlayIvysilaniTest(TestCase):
+    def test_program_page(self):
+        url = "https://www.ceskatelevize.cz/porady/11276561613-kosmo/"
+        with self.assertRaisesRegex(ValueError, "Video not found"):
+            play_ivysilani({"<url>": url})
 
-        stream_url = ('http://80.188.78.151:80/atip/fd2eccaa99022586e14694df91068915/1449324471384/'
-                      '3616440c710a1d7e3f54761a6d940c64/2402-tv-pc/1502.m3u8')
-        self.assertEqual(self.call_mock.mock_calls, [call(['mpv', stream_url])])
+    def test_episode(self):
+        url = "https://www.ceskatelevize.cz/porady/11276561613-kosmo/215512121020005/"
+        with patch("televize.get_ivysilani_playlist", autospec=True, return_value=sentinel.playlist_url) as get_mock:
+            with patch("televize.run_player", autospec=True) as run_mock:
+                play_ivysilani({"<url>": url, "--player": sentinel.player, "--quality": sentinel.quality})
 
-    def test_play_live_unknown(self):
-        options = {'live': True, '<channel>': 'unknown', '--quality': 'min'}
-
-        with self.assertRaisesRegex(ValueError, "^Unknown live channel 'unknown'$"):
-            play(options)
-
-    def test_play_ivysilani(self):
-        options = {'live': False, 'ivysilani': True, '<url>': 'https://www.ceskatelevize.cz/ivysilani/kosmo.html',
-                   '--player': 'mpv', '--quality': 'min'}
-        playlist_url = 'https://www.ceskatelevize.cz/ivysilani/client-playlist/?key=df365c9c2ea8b36f76dfa29e3b16d245'
-
-        with responses.RequestsMock() as rsps:
-            rsps.add(responses.GET, 'https://www.ceskatelevize.cz/ivysilani/kosmo.html',
-                     body=get_content(get_path(__file__, 'data/ivysilani.html')))
-            rsps.add(responses.POST, 'https://www.ceskatelevize.cz/ivysilani/ajax/get-client-playlist/',
-                     json={'url': playlist_url}),
-            rsps.add(responses.GET, 'https://www.ceskatelevize.cz/ivysilani/client-playlist/',
-                     body=get_content(get_path(__file__, 'data/play_live/client_playlist.json')))
-            rsps.add(responses.GET, 'http://80.188.65.18:80/cdn/uri/get/',
-                     body=get_content(get_path(__file__, 'data/play_live/stream_playlist.m3u')))
-            play(options)
-
-        stream_url = ('http://80.188.78.151:80/atip/fd2eccaa99022586e14694df91068915/1449324471384/'
-                      '3616440c710a1d7e3f54761a6d940c64/2402-tv-pc/1502.m3u8')
-        self.assertEqual(self.call_mock.mock_calls, [call(['mpv', stream_url])])
+        self.assertEqual(get_mock.mock_calls, [call("215512121020005", sentinel.quality)])
+        self.assertEqual(run_mock.mock_calls, [call(sentinel.playlist_url, sentinel.player)])
