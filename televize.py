@@ -22,10 +22,11 @@ Options:
 import logging
 import re
 import shlex
-import subprocess  # nosec
+import subprocess
 import sys
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Any, Dict, Iterable, Optional
+from typing import Any, Optional, cast
 from urllib.parse import urljoin, urlsplit
 
 import requests
@@ -109,7 +110,7 @@ def get_live_playlist(channel: str, quality: str) -> str:
     response.raise_for_status()
 
     playlist_data = response.json()
-    return playlist_data["streamUrls"]["main"]
+    return cast(str, playlist_data["streamUrls"]["main"])
 
 
 IVYSILANI_PLAYLIST_LINK = "https://api.ceskatelevize.cz/video/v1/playlist-vod/v1/stream-data/media/external/"
@@ -127,7 +128,7 @@ def get_ivysilani_playlist(program_id: str, quality: str) -> str:
     response.raise_for_status()
 
     playlist_data = response.json()
-    return playlist_data["streams"][0]["url"]
+    return cast(str, playlist_data["streams"][0]["url"])
 
 
 ################################################################################
@@ -139,10 +140,10 @@ def run_player(playlist: str, player_cmd: str) -> None:
     """
     cmd = shlex.split(player_cmd) + [playlist]
     logging.debug("Player cmd: %s", cmd)
-    subprocess.call(cmd)  # nosec
+    subprocess.call(cmd)  # noqa: S101, S603
 
 
-def play_live(options: Dict[str, Any]) -> None:
+def play_live(options: dict[str, Any]) -> None:
     """Play live channel."""
     playlist = get_live_playlist(options['<channel>'], options['--quality'])
     run_player(playlist, options['--player'])
@@ -151,7 +152,7 @@ def play_live(options: Dict[str, Any]) -> None:
 PORADY_PATH_PATTERN = re.compile(r'^/porady/[^/]+/(?P<playlist_id>\d+)(-[^/]*)?/?$')
 
 
-def play_ivysilani(options: Dict[str, Any]) -> None:
+def play_ivysilani(options: dict[str, Any]) -> None:
     """Play live channel.
 
     Raises:
@@ -189,7 +190,7 @@ def main() -> None:
         elif options['live']:
             play_live(options)
         else:
-            assert options['ivysilani']  # nosec
+            assert options['ivysilani']  # noqa: S101
             play_ivysilani(options)
     except Exception as error:
         if level == logging.DEBUG:

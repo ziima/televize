@@ -1,0 +1,100 @@
+[build-system]
+requires = ['setuptools>=61.0']
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "televize"
+version = "0.6.0"
+authors = [
+    {name = "Vlastimil Zíma", email = "vlastimil.zima@gmail.com"},
+]
+description = "Script to play Czech Television (Česká televize) streams in a custom player."
+readme = "README.rst"
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
+dependencies = [
+    "docopt-ng",
+    "requests",
+]
+requires-python = "~= 3.9"
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: End Users/Desktop",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Internet",
+    "Topic :: Multimedia :: Video",
+    "Topic :: Utilities",
+    "Typing :: Typed",
+]
+
+[project.optional-dependencies]
+quality = [
+    "doc8",
+    "mypy",
+    "ruff",
+]
+tests = [
+    "responses",
+    "testfixtures",
+]
+types = [
+    "types-requests",
+]
+
+[project.scripts]
+televize = "televize:main"
+
+[project.urls]
+homepage = "https://github.com/ziima/televize"
+changelog = "https://github.com/ziima/televize/blob/master/CHANGELOG.rst"
+
+[tool.setuptools]
+py-modules = ["televize"]
+
+[tool.doc8]
+max-line-length = 120
+allow-long-titles = true
+
+[tool.mypy]
+ignore_missing_imports = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+warn_redundant_casts = true
+warn_return_any = true
+warn_unreachable = true
+warn_unused_ignores = true
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+check_untyped_defs = true
+
+[tool.ruff]
+target-version = "py39"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "W", "C90", "I", "D", "S", "C", "UP", "B", "ISC", "G", "RSE"]
+ignore = ["D105", "D106", "D107", "UP032", "ISC001"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["D1", "S101", "S105", "S106", "S107", "B015", "B018"]
+
+[tool.ruff.lint.isort]
+combine-as-imports = true
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.lint.pycodestyle]
+max-doc-length = 120
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"

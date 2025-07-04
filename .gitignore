@@ -1,6 +1,9 @@
-*.pyc
-/htmlcov
+__pycache__
+
 /dist
 *.egg-info
+
 /.tox
+/.cover*
+
 /.mypy_cache

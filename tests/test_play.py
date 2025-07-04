@@ -1,6 +1,3 @@
-"""
-Test live streaming
-"""
 import unittest
 from unittest import TestCase
 from unittest.mock import call, patch, sentinel
@@ -9,8 +6,17 @@ import responses
 from responses.matchers import query_param_matcher
 from testfixtures import OutputCapture
 
-from televize import (CHANNELS_LINK, Channel, get_channels, get_ivysilani_playlist, get_live_playlist, play_ivysilani,
-                      play_live, print_channels, run_player)
+from televize import (
+    CHANNELS_LINK,
+    Channel,
+    get_channels,
+    get_ivysilani_playlist,
+    get_live_playlist,
+    play_ivysilani,
+    play_live,
+    print_channels,
+    run_player,
+)
 
 
 class GetChannelsTest(TestCase):
@@ -109,7 +115,6 @@ class GetIvysilaniPlaylistTest(TestCase):
 
 
 class TestRunPlayer(unittest.TestCase):
-    """Test `run_player` function"""
     def setUp(self):
         call_patcher = patch('televize.subprocess.call')
         self.addCleanup(call_patcher.stop)
