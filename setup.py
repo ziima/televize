@@ -5,7 +5,8 @@ VERSION = '0.6.0'
 REQUIREMENTS = open('requirements.txt').read().split()
 EXTRAS_REQUIRE = {
     'quality': ('flake8', 'isort', 'bandit', 'mypy', 'pydocstyle'),
-    'tests': ('responses', ),
+    'tests': ('responses', 'testfixtures'),
+    'types': ('types-requests', ),
 }
 LONG_DESCRIPTION = open('README.rst').read() + '\n\n' + open('Changelog.rst').read()
 CLASSIFIERS = [

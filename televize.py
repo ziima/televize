@@ -1,27 +1,21 @@
 #!/usr/bin/env python3
 """Play Czech television stream in custom player.
 
-Usage: televize.py [options] live <channel>
+Usage: televize.py [options] channels
+       televize.py [options] live <channel>
        televize.py [options] ivysilani <url>
        televize.py -h | --help
        televize.py --version
 
 Subcommands:
+  channels             print a list of available channels
   live                 play live channel
   ivysilani            play video from ivysilani archive
-
-Live channels:
-  1                    CT1
-  2                    CT2
-  24                   CT24
-  sport                CTsport
-  D                    CT:D
-  art                  CTart
 
 Options:
   -h, --help           show this help message and exit
   --version            show program's version number and exit
-  -q, --quality=QUAL   select stream quality [default: min]. Possible values are integers, 'min' and 'max'.
+  -q, --quality=QUAL   select stream quality [default: 540p]. Commonly available are 180p, 360p, 540p, 720p and 1080p.
   -p, --player=PLAYER  player command [default: mpv]
   -d, --debug          print debug messages
 """
@@ -30,156 +24,153 @@ import re
 import shlex
 import subprocess  # nosec
 import sys
-from collections import OrderedDict
+from dataclasses import dataclass
+from typing import Any, Dict, Iterable, Optional
 from urllib.parse import urljoin, urlsplit
 
-import m3u8
 import requests
 from docopt import docopt
-from lxml import etree  # nosec
 
 __version__ = '0.6.0'
 
 
-PLAYLIST_LINK = 'https://www.ceskatelevize.cz/ivysilani/ajax/get-client-playlist/'
-CHANNEL_NAMES = OrderedDict((
-    ('1', 1),
-    ('2', 2),
-    ('24', 24),
-    ('sport', 4),
-    ('D', 5),
-    ('art', 6),
-))
-PLAYLIST_TYPE_CHANNEL = 'channel'
-PLAYLIST_TYPE_EPISODE = 'episode'
+################################################################################
+# Channels API
 
-PORADY_PATH_PATTERN = re.compile(r'^/porady/[^/]+/(?P<playlist_id>\d+)(-[^/]*)?/?$')
+CHANNELS_LINK = "https://ct24.ceskatelevize.cz/api/live"
+
+
+@dataclass
+class Channel:
+    """Represents a TV channel.
+
+    Attributes:
+        id: Channel ID
+        name: Channel name
+        slug: Channel slug
+        title: Current or next programme title
+    """
+    id: str
+    name: str
+    slug: str
+    title: Optional[str] = None
+
+
+def get_channels() -> Iterable[Channel]:
+    """Iterate over available channels."""
+    response = requests.get(CHANNELS_LINK, timeout=10)
+    logging.debug("Channels response[%s]: %s", response.status_code, response.text)
+    response.raise_for_status()
+    for channel_data in response.json()["data"]:
+        if not channel_data.get("__typename") == "LiveBroadcast":
+            # Skip non-live channels
+            continue
+        if current := channel_data.get('current'):
+            name = current['channelSettings']['channelName']
+            slug = current['slug']
+            title = current['title']
+        elif next := channel_data.get('next'):
+            name = next['channelSettings']['channelName']
+            slug = next['slug']
+            title = next['title']
+        else:
+            name = ''
+            slug = ''
+            title = None
+
+        yield Channel(id=channel_data['id'], name=name, slug=slug, title=title)
+
+
+def print_channels(channels: Iterable[Channel]) -> None:
+    """List available channels."""
+    for channel in channels:
+        print(f"{channel.slug}: {channel.name} - {channel.title}")
 
 
 ################################################################################
 # Playlist functions
-def parse_quality(value: str) -> int:
-    """Return quality selector parsed from user input value.
+LIVE_PLAYLIST_LINK = "https://api.ceskatelevize.cz/video/v1/playlist-live/v1/stream-data/channel/"
 
-    @raises ValueError: If value is not a valid quality selector.
+
+def get_live_playlist(channel: str, quality: str) -> str:
+    """Return playlist URL for live CT channel.
+
+    @param channel: Channel slug
+    @param quality: Requested quality
     """
-    # Special keywords
-    if value == 'min':
-        return 0
-    elif value == 'max':
-        return -1
-    try:
-        return int(value)
-    except ValueError:
-        raise ValueError("Quality '{}' is not a valid value.".format(value))
+    channels = {c.slug: c for c in get_channels()}
+    if channel not in channels:
+        raise ValueError(f"Channel {channel} not found.")
+    channel_obj = channels[channel]
+
+    data = {'quality': quality}
+    response = requests.get(urljoin(LIVE_PLAYLIST_LINK, channel_obj.id), data, timeout=10)
+    logging.debug("Live playlist response[%s]: %s", response.status_code, response.text)
+    response.raise_for_status()
+
+    playlist_data = response.json()
+    return playlist_data["streamUrls"]["main"]
 
 
-def get_playlist(playlist_id, playlist_type, quality: int):
-    """Extract the playlist for CT video.
+IVYSILANI_PLAYLIST_LINK = "https://api.ceskatelevize.cz/video/v1/playlist-vod/v1/stream-data/media/external/"
 
-    @param playlist_id: ID of playlist
-    @param playlist_type: Type of playlist
-    @param quality: Quality selector
+
+def get_ivysilani_playlist(program_id: str, quality: str) -> str:
+    """Return playlist URL for ivysilani.
+
+    @param program_id: Program ID
+    @param quality: Requested quality
     """
-    assert playlist_type in (PLAYLIST_TYPE_CHANNEL, PLAYLIST_TYPE_EPISODE)  # nosec
-    # First get the custom client playlist URL
-    post_data = {
-        'playlist[0][id]': playlist_id,
-        'playlist[0][type]': playlist_type,
-        'requestUrl': '/ivysilani/',
-        'requestSource': "iVysilani",
-        'addCommercials': 0,
-        'type': "html"
-    }
-    response = requests.post(PLAYLIST_LINK, post_data, headers={'x-addr': '127.0.0.1'})
-    logging.debug("Client playlist: %s", response.text)
-    client_playlist = response.json()
+    data = {'quality': quality}
+    response = requests.get(urljoin(IVYSILANI_PLAYLIST_LINK, program_id), data, timeout=10)
+    logging.debug("Ivysilani playlist response[%s]: %s", response.status_code, response.text)
+    response.raise_for_status()
 
-    # Get the custom playlist URL to get playlist JSON meta data (including playlist URL)
-    response = requests.get(urljoin(PLAYLIST_LINK, client_playlist["url"]))
-    logging.debug("Playlist URL: %s", response.text)
-    playlist_metadata = response.json()
-    stream_playlist_url = playlist_metadata['playlist'][0]['streamUrls']['main']
-
-    # Use playlist URL to get the M3U playlist with streams
-    response = requests.get(urljoin(PLAYLIST_LINK, stream_playlist_url))
-    logging.debug("Variant playlist: %s", response.text)
-    playlist_base_url = response.url
-    variant_playlist = m3u8.loads(response.text)
-
-    # Select stream based on quality
-    playlists = sorted(variant_playlist.playlists, key=lambda p: p.stream_info.bandwidth)
-    try:
-        playlist = playlists[quality]
-    except IndexError:
-        raise ValueError("Requested quality {} is not available.".format(quality))
-    playlist.base_uri = playlist_base_url
-    return playlist
-
-
-def get_ivysilani_playlist(url, quality: int):
-    """Extract the playlist for ivysilani page.
-
-    @param url: URL of the web page
-    @param quality: Quality selector
-    """
-    # Porady pages have playlist ID in URL
-    split = urlsplit(url)
-    match = PORADY_PATH_PATTERN.match(split.path)
-    if match:
-        playlist_id = match.group('playlist_id')
-        return get_playlist(playlist_id, PLAYLIST_TYPE_EPISODE, quality)
-
-    # Try ivysilani URL
-    response = requests.get(url)
-    page = etree.HTML(response.text)
-    play_button = page.find('.//a[@class="programmeToPlaylist"]')
-    if play_button is None:
-        raise ValueError("Can't find playlist on the ivysilani page.")
-    item = play_button.get('rel')
-    if not item:
-        raise ValueError("Can't find playlist on the ivysilani page.")
-    return get_playlist(item, PLAYLIST_TYPE_EPISODE, quality)
-
-
-def get_live_playlist(channel, quality: int):
-    """Extract the playlist for live CT channel.
-
-    @param channel: Name of the channel
-    @param quality: Quality selector
-    """
-    return get_playlist(CHANNEL_NAMES[channel], PLAYLIST_TYPE_CHANNEL, quality)
+    playlist_data = response.json()
+    return playlist_data["streams"][0]["url"]
 
 
 ################################################################################
-def run_player(playlist: m3u8.model.Playlist, player_cmd: str):
+def run_player(playlist: str, player_cmd: str) -> None:
     """Run the video player.
 
-    @param playlist: Playlist to be played
-    @param player_cmd: Additional player arguments
+    @param playlist: Playlist URL to be played
+    @param player_cmd: Player command
     """
-    cmd = shlex.split(player_cmd) + [playlist.absolute_uri]
+    cmd = shlex.split(player_cmd) + [playlist]
     logging.debug("Player cmd: %s", cmd)
     subprocess.call(cmd)  # nosec
 
 
-def play(options):
-    """Play televize.
-
-    @raises ValueError: In case of an invalid options.
-    """
-    quality = parse_quality(options['--quality'])
-    if options['live']:
-        if options['<channel>'] not in CHANNEL_NAMES:
-            raise ValueError("Unknown live channel '{}'".format(options['<channel>']))
-        playlist = get_live_playlist(options['<channel>'], quality)
-    else:
-        assert options['ivysilani']  # nosec
-        playlist = get_ivysilani_playlist(options['<url>'], quality)
+def play_live(options: Dict[str, Any]) -> None:
+    """Play live channel."""
+    playlist = get_live_playlist(options['<channel>'], options['--quality'])
     run_player(playlist, options['--player'])
 
 
-def main():
+PORADY_PATH_PATTERN = re.compile(r'^/porady/[^/]+/(?P<playlist_id>\d+)(-[^/]*)?/?$')
+
+
+def play_ivysilani(options: Dict[str, Any]) -> None:
+    """Play live channel.
+
+    Raises:
+        ValueError: Program not found.
+    """
+    # Porady pages have playlist ID in URL
+    split = urlsplit(options["<url>"])
+    match = PORADY_PATH_PATTERN.match(split.path)
+    if match:
+        playlist_id = match.group('playlist_id')
+        playlist = get_ivysilani_playlist(playlist_id, options['--quality'])
+        run_player(playlist, options['--player'])
+
+    if not match:
+        # TODO: Fetch porady page and play the most recent video.
+        raise ValueError("Video not found.")
+
+
+def main() -> None:
     """Play Czech television stream in custom player."""
     options = docopt(__doc__, version=__version__)
 
@@ -192,7 +183,14 @@ def main():
     logging.getLogger('iso8601').setLevel(logging.WARN)
 
     try:
-        play(options)
+        channels = get_channels()
+        if options['channels']:
+            print_channels(channels)
+        elif options['live']:
+            play_live(options)
+        else:
+            assert options['ivysilani']  # nosec
+            play_ivysilani(options)
     except Exception as error:
         if level == logging.DEBUG:
             logging.exception("An error occured:")
