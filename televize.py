@@ -19,6 +19,7 @@ Options:
   -p, --player=PLAYER  player command [default: mpv]
   -d, --debug          print debug messages
 """
+
 import logging
 import re
 import shlex
@@ -32,7 +33,7 @@ from urllib.parse import urljoin, urlsplit
 import requests
 from docopt import docopt
 
-__version__ = '0.6.0'
+__version__ = "0.6.0"
 
 
 ################################################################################
@@ -51,6 +52,7 @@ class Channel:
         slug: Channel slug
         title: Current or next programme title
     """
+
     id: str
     name: str
     slug: str
@@ -66,20 +68,20 @@ def get_channels() -> Iterable[Channel]:
         if not channel_data.get("__typename") == "LiveBroadcast":
             # Skip non-live channels
             continue
-        if current := channel_data.get('current'):
-            name = current['channelSettings']['channelName']
-            slug = current['slug']
-            title = current['title']
-        elif next := channel_data.get('next'):
-            name = next['channelSettings']['channelName']
-            slug = next['slug']
-            title = next['title']
+        if current := channel_data.get("current"):
+            name = current["channelSettings"]["channelName"]
+            slug = current["slug"]
+            title = current["title"]
+        elif next := channel_data.get("next"):
+            name = next["channelSettings"]["channelName"]
+            slug = next["slug"]
+            title = next["title"]
         else:
-            name = ''
-            slug = ''
+            name = ""
+            slug = ""
             title = None
 
-        yield Channel(id=channel_data['id'], name=name, slug=slug, title=title)
+        yield Channel(id=channel_data["id"], name=name, slug=slug, title=title)
 
 
 def print_channels(channels: Iterable[Channel]) -> None:
@@ -104,7 +106,7 @@ def get_live_playlist(channel: str, quality: str) -> str:
         raise ValueError(f"Channel {channel} not found.")
     channel_obj = channels[channel]
 
-    data = {'quality': quality}
+    data = {"quality": quality}
     response = requests.get(urljoin(LIVE_PLAYLIST_LINK, channel_obj.id), data, timeout=10)
     logging.debug("Live playlist response[%s]: %s", response.status_code, response.text)
     response.raise_for_status()
@@ -122,7 +124,7 @@ def get_ivysilani_playlist(program_id: str, quality: str) -> str:
     @param program_id: Program ID
     @param quality: Requested quality
     """
-    data = {'quality': quality}
+    data = {"quality": quality}
     response = requests.get(urljoin(IVYSILANI_PLAYLIST_LINK, program_id), data, timeout=10)
     logging.debug("Ivysilani playlist response[%s]: %s", response.status_code, response.text)
     response.raise_for_status()
@@ -145,11 +147,11 @@ def run_player(playlist: str, player_cmd: str) -> None:
 
 def play_live(options: dict[str, Any]) -> None:
     """Play live channel."""
-    playlist = get_live_playlist(options['<channel>'], options['--quality'])
-    run_player(playlist, options['--player'])
+    playlist = get_live_playlist(options["<channel>"], options["--quality"])
+    run_player(playlist, options["--player"])
 
 
-PORADY_PATH_PATTERN = re.compile(r'^/porady/[^/]+/(?P<playlist_id>\d+)(-[^/]*)?/?$')
+PORADY_PATH_PATTERN = re.compile(r"^/porady/[^/]+/(?P<playlist_id>\d+)(-[^/]*)?/?$")
 
 
 def play_ivysilani(options: dict[str, Any]) -> None:
@@ -162,9 +164,9 @@ def play_ivysilani(options: dict[str, Any]) -> None:
     split = urlsplit(options["<url>"])
     match = PORADY_PATH_PATTERN.match(split.path)
     if match:
-        playlist_id = match.group('playlist_id')
-        playlist = get_ivysilani_playlist(playlist_id, options['--quality'])
-        run_player(playlist, options['--player'])
+        playlist_id = match.group("playlist_id")
+        playlist = get_ivysilani_playlist(playlist_id, options["--quality"])
+        run_player(playlist, options["--player"])
 
     if not match:
         # TODO: Fetch porady page and play the most recent video.
@@ -176,21 +178,21 @@ def main() -> None:
     options = docopt(__doc__, version=__version__)
 
     # Set up logging
-    if options['--debug']:
+    if options["--debug"]:
         level = logging.DEBUG
     else:
         level = logging.WARNING
-    logging.basicConfig(stream=sys.stderr, level=level, format='%(asctime)s %(levelname)s:%(funcName)s: %(message)s')
-    logging.getLogger('iso8601').setLevel(logging.WARN)
+    logging.basicConfig(stream=sys.stderr, level=level, format="%(asctime)s %(levelname)s:%(funcName)s: %(message)s")
+    logging.getLogger("iso8601").setLevel(logging.WARN)
 
     try:
         channels = get_channels()
-        if options['channels']:
+        if options["channels"]:
             print_channels(channels)
-        elif options['live']:
+        elif options["live"]:
             play_live(options)
         else:
-            assert options['ivysilani']  # noqa: S101
+            assert options["ivysilani"]  # noqa: S101
             play_ivysilani(options)
     except Exception as error:
         if level == logging.DEBUG:
@@ -203,5 +205,5 @@ def main() -> None:
         exit(0)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
