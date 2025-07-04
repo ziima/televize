@@ -173,7 +173,7 @@ def play_ivysilani(options: dict[str, Any]) -> None:
         raise ValueError("Video not found.")
 
 
-def main() -> None:
+def main() -> None:  # pragma: no cover
     """Play Czech television stream in custom player."""
     options = docopt(__doc__, version=__version__)
 
@@ -205,5 +205,5 @@ def main() -> None:
         exit(0)
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     main()

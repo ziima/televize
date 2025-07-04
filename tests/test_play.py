@@ -28,6 +28,15 @@ class GetChannelsTest(TestCase):
 
         self.assertEqual(channels, ())
 
+    def test_not_live(self):
+        channel_data = {"id": "CT-42"}
+        with responses.RequestsMock() as rsps:
+            rsps.add(responses.GET, CHANNELS_LINK, json={"data": [channel_data]})
+
+            channels = tuple(get_channels())
+
+        self.assertEqual(channels, ())
+
     def test_live_current(self):
         channel_data = {
             "__typename": "LiveBroadcast",
