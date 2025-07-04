@@ -1,0 +1,16 @@
+[tool.bumpversion]
+current_version = "0.6.0"
+commit = true
+tag = true
+parse = '(?P<release>(?:\d+)\.(?:\d+)\.(?:\d+))(?:\.(?P<patch>\d+))?'
+serialize = ["{release}.{patch}", "{release}"]
+
+[tool.bumpversion.parts.release]
+calver_format = "{YYYY}.{MM}.{DD}"
+
+[[tool.bumpversion.files]]
+filename = "pyproject.toml"
+
+[[tool.bumpversion.files]]
+filename = "televize.py"
+
